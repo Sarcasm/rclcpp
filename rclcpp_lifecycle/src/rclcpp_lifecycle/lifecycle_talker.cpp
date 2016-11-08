@@ -24,63 +24,115 @@
 
 #include "std_msgs/msg/string.hpp"
 
+
+class MyLifecycleNode : public rclcpp::node::lifecycle::LifecycleNode
+{
+public:
+  explicit MyLifecycleNode(const std::string& node_name, bool intra_process_comms = false):
+    rclcpp::node::lifecycle::LifecycleNode(node_name, intra_process_comms)
+  {
+    msg_ = std::make_shared<std_msgs::msg::String>();
+
+    pub_ = this->create_publisher<std_msgs::msg::String>("chatter");
+
+    timer_ = this->create_wall_timer(1_s, std::bind(&MyLifecycleNode::publish, this));
+  }
+
+  void publish()
+  {
+    static size_t count = 0;
+    msg_->data = "HelloWorld"+std::to_string(++count);
+    pub_->publish(msg_);
+  }
+
+  bool on_configure()
+  {
+    printf("Going to configure my Node\n");
+    return true;
+  }
+
+  bool on_activate()
+  {
+    rclcpp::node::lifecycle::LifecycleNode::enable_communication();
+    printf("Going to activate my node\n");
+    return true;
+  }
+
+  bool on_deactivate()
+  {
+    rclcpp::node::lifecycle::LifecycleNode::disable_communication();
+    printf("Going to deactivate my node\n");
+    return true;
+  }
+
+private:
+  std::shared_ptr<std_msgs::msg::String> msg_;
+  std::shared_ptr<rclcpp::publisher::LifecyclePublisher<std_msgs::msg::String>> pub_;
+  rclcpp::TimerBase::SharedPtr timer_;
+};
+
+
 int main(int argc, char * argv[])
 {
+  setvbuf(stdout, NULL, _IONBF, BUFSIZ);
   rclcpp::init(argc, argv);
 
-  std::shared_ptr<rclcpp::node::lifecycle::LifecycleNode> lc_node = std::make_shared<rclcpp::node::lifecycle::LifecycleNode>("lc_talker");
+  rclcpp::executors::MultiThreadedExecutor exe;
 
-  rmw_qos_profile_t custom_qos_profile = rmw_qos_profile_default;
-  custom_qos_profile.depth = 7;
-
-  std::shared_ptr<rclcpp::publisher::LifecyclePublisher<std_msgs::msg::String>> chatter_pub =
-    lc_node->create_publisher<std_msgs::msg::String>("chatter", custom_qos_profile);
+  std::shared_ptr<MyLifecycleNode> lc_node = std::make_shared<MyLifecycleNode>("lc_talker");
 
   rclcpp::lifecycle::LifecycleManager lm;
   lm.add_node_interface(lc_node);
 
+  exe.add_node(lc_node);
+
+  auto time_out_lambda = []() ->int {
+    std::this_thread::sleep_for(std::chrono::seconds(10));
+    return 0;
+  };
+
   // configure
+  // dummy mockup for now!
   lm.configure("my_node1");
+  std::shared_future<int> time_out = std::async(std::launch::async, time_out_lambda);
+  exe.spin_until_future_complete(time_out);
 
-  rclcpp::WallRate loop_rate(2);
+  lm.activate("my_node1");
+  time_out = std::async(std::launch::async, time_out_lambda);
+  exe.spin_until_future_complete(time_out);
 
-  auto msg = std::make_shared<std_msgs::msg::String>();
-  auto i = 1;
+  lm.deactivate("my_node1");
+  time_out = std::async(std::launch::async, time_out_lambda);
+  exe.spin_until_future_complete(time_out);
 
+  /*
   while (rclcpp::ok() && i <= 10) {
-    msg->data = "Hello World: " + std::to_string(i++);
-    //std::cout << "Publishing: '" << msg->data << "'" << std::endl;
-    chatter_pub->publish(msg);
-    rclcpp::spin_some(lc_node);
-    loop_rate.sleep();
+    exe.spin_once();
+    //loop_rate.sleep();
+    ++i;
   }
 
-  printf("Calling new activate\n");
   if (!lm.activate("my_node1"))
   {
     return -1;
   }
 
   while (rclcpp::ok() && i <= 20) {
-    msg->data = "Hello World: " + std::to_string(i++);
-    //std::cout << "Publishing: '" << msg->data << "'" << std::endl;
-    chatter_pub->publish(msg);
-    rclcpp::spin_some(lc_node);
-    loop_rate.sleep();
+    exe.spin_once();
+    //loop_rate.sleep();
+    ++i;
   }
 
-  printf("Calling deactivate\n");
   if (!lm.deactivate("my_node1"))
   {
     return -1;
   }
 
   while (rclcpp::ok() && i <= 30) {
-    msg->data = "Hello World: " + std::to_string(i++);
-    //std::cout << "Publishing: '" << msg->data << "'" << std::endl;
-    chatter_pub->publish(msg);
-    rclcpp::spin_some(lc_node);
-    loop_rate.sleep();
+    exe.spin_once(std::chrono::nanoseconds(0));
+    //loop_rate.sleep();
+    ++i;
   }
+  */
   return 0;
 }
