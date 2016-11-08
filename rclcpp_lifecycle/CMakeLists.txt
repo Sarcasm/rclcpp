@@ -15,8 +15,6 @@ find_package(std_msgs REQUIRED)
 
 include_directories(
   include
-  #  ${rclcpp_INCLUDE_DIRS}
-  #  ${rmw_INCLUDE_DIRS}
 )
 
 set(rcl_lifecycle_sources
@@ -36,6 +34,7 @@ add_library(
 install(TARGETS rcl_lifecycle
     ARCHIVE DESTINATION lib
     LIBRARY DESTINATION lib
+    RUNTIME DESTINATION bin
 )
 
 macro(targets)
