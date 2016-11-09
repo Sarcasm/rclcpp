@@ -14,6 +14,7 @@
 
 #include <iostream>
 #include <memory>
+#include <string>
 
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp/publisher.hpp"
@@ -24,12 +25,11 @@
 
 #include "std_msgs/msg/string.hpp"
 
-
 class MyLifecycleNode : public rclcpp::node::lifecycle::LifecycleNode
 {
 public:
-  explicit MyLifecycleNode(const std::string& node_name, bool intra_process_comms = false):
-    rclcpp::node::lifecycle::LifecycleNode(node_name, intra_process_comms)
+  explicit MyLifecycleNode(const std::string & node_name, bool intra_process_comms = false)
+  : rclcpp::node::lifecycle::LifecycleNode(node_name, intra_process_comms)
   {
     msg_ = std::make_shared<std_msgs::msg::String>();
 
@@ -41,7 +41,7 @@ public:
   void publish()
   {
     static size_t count = 0;
-    msg_->data = "HelloWorld"+std::to_string(++count);
+    msg_->data = "HelloWorld" + std::to_string(++count);
     pub_->publish(msg_);
   }
 
@@ -86,10 +86,10 @@ int main(int argc, char * argv[])
 
   exe.add_node(lc_node);
 
-  auto time_out_lambda = []() ->int {
-    std::this_thread::sleep_for(std::chrono::seconds(10));
-    return 0;
-  };
+  auto time_out_lambda = []() -> int {
+      std::this_thread::sleep_for(std::chrono::seconds(10));
+      return 0;
+    };
 
   // configure
   // dummy mockup for now!

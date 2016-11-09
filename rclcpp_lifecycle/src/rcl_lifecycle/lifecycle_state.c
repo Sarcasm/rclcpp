@@ -22,47 +22,48 @@ extern "C"
 
 #include "rcl_lifecycle/lifecycle_state.h"
 
-const rcl_state_transition_t*
-rcl_is_valid_transition_by_index(rcl_state_machine_t* state_machine, unsigned int transition_index)
+const rcl_state_transition_t *
+rcl_is_valid_transition_by_index(rcl_state_machine_t * state_machine,
+  unsigned int transition_index)
 {
   unsigned int current_index = state_machine->current_state->index;
-  const rcl_transition_array_t* valid_transitions = rcl_get_transitions_by_index(&state_machine->transition_map, current_index);
-  for (unsigned int i=0; i<valid_transitions->size; ++i)
-  {
-    if (valid_transitions->transitions[i].transition_state.index == transition_index)
-    {
+  const rcl_transition_array_t * valid_transitions = rcl_get_transitions_by_index(
+    &state_machine->transition_map, current_index);
+  for (unsigned int i = 0; i < valid_transitions->size; ++i) {
+    if (valid_transitions->transitions[i].transition_state.index == transition_index) {
       return &valid_transitions->transitions[i];
     }
   }
   return NULL;
 }
 
-const rcl_state_transition_t*
-rcl_is_valid_transition_by_label(rcl_state_machine_t* state_machine, const char* transition_label)
+const rcl_state_transition_t *
+rcl_is_valid_transition_by_label(rcl_state_machine_t * state_machine,
+  const char * transition_label)
 {
   unsigned int current_index = state_machine->current_state->index;
-  const rcl_transition_array_t* valid_transitions = rcl_get_transitions_by_index(&state_machine->transition_map, current_index);
-  for (unsigned int i=0; i<valid_transitions->size; ++i)
-  {
-    if (valid_transitions->transitions[i].transition_state.label == transition_label)
-    {
+  const rcl_transition_array_t * valid_transitions = rcl_get_transitions_by_index(
+    &state_machine->transition_map, current_index);
+  for (unsigned int i = 0; i < valid_transitions->size; ++i) {
+    if (valid_transitions->transitions[i].transition_state.label == transition_label) {
       return &valid_transitions->transitions[i];
     }
   }
   return NULL;
 }
 
-const rcl_state_transition_t*
-rcl_get_registered_transition_by_index(rcl_state_machine_t* state_machine, unsigned int transition_state_index)
+const rcl_state_transition_t *
+rcl_get_registered_transition_by_index(rcl_state_machine_t * state_machine,
+  unsigned int transition_state_index)
 {
   // extensive search approach
-  // TODO(karsten1987) can be improved by having a separate array for "registered transition"
-  const rcl_transition_map_t* map = &state_machine->transition_map;
-  for (unsigned int i=0; i<map->size; ++i)
-  {
-    for (unsigned int j=0; j<map->transition_arrays[i].size; ++j)
-    {
-      if (map->transition_arrays[i].transitions[j].transition_state.index == transition_state_index)
+  // TODO(karsten1987) can be improved by having a separate array
+  // for "registered transition"
+  const rcl_transition_map_t * map = &state_machine->transition_map;
+  for (unsigned int i = 0; i < map->size; ++i) {
+    for (unsigned int j = 0; j < map->transition_arrays[i].size; ++j) {
+      if (map->transition_arrays[i].transitions[j].transition_state.index ==
+        transition_state_index)
       {
         return &map->transition_arrays[i].transitions[j];
       }
@@ -71,17 +72,18 @@ rcl_get_registered_transition_by_index(rcl_state_machine_t* state_machine, unsig
   return NULL;
 }
 
-const rcl_state_transition_t*
-rcl_get_registered_transition_by_label(rcl_state_machine_t* state_machine, const char* transition_state_label)
+const rcl_state_transition_t *
+rcl_get_registered_transition_by_label(rcl_state_machine_t * state_machine,
+  const char * transition_state_label)
 {
   // extensive search approach
-  // TODO(karsten1987) can be improved by having a separate array for "registered transition"
-  const rcl_transition_map_t* map = &state_machine->transition_map;
-  for (unsigned int i=0; i<map->size; ++i)
-  {
-    for (unsigned int j=0; j<map->transition_arrays[i].size; ++j)
-    {
-      if (strcmp(map->transition_arrays[i].transitions[j].transition_state.label, transition_state_label) == 0)
+  // TODO(karsten1987) can be improved by having a separate array
+  // for "registered transition"
+  const rcl_transition_map_t * map = &state_machine->transition_map;
+  for (unsigned int i = 0; i < map->size; ++i) {
+    for (unsigned int j = 0; j < map->transition_arrays[i].size; ++j) {
+      if (strcmp(map->transition_arrays[i].transitions[j].transition_state.label,
+        transition_state_label) == 0)
       {
         return &map->transition_arrays[i].transitions[j];
       }
@@ -91,13 +93,13 @@ rcl_get_registered_transition_by_label(rcl_state_machine_t* state_machine, const
 }
 
 void
-rcl_register_callback(rcl_state_machine_t* state_machine, unsigned int state_index, unsigned int transition_index, bool(*fcn)(void))
+rcl_register_callback(rcl_state_machine_t * state_machine,
+  unsigned int state_index, unsigned int transition_index, bool (* fcn)(void))
 {
-  rcl_transition_array_t* transitions = rcl_get_transitions_by_index(&state_machine->transition_map, state_index);
-  for (unsigned int i=0; i<transitions->size; ++i)
-  {
-    if (transitions->transitions[i].transition_state.index == transition_index)
-    {
+  rcl_transition_array_t * transitions = rcl_get_transitions_by_index(
+    &state_machine->transition_map, state_index);
+  for (unsigned int i = 0; i < transitions->size; ++i) {
+    if (transitions->transitions[i].transition_state.index == transition_index) {
       transitions->transitions[i].callback = fcn;
     }
   }
@@ -106,21 +108,20 @@ rcl_register_callback(rcl_state_machine_t* state_machine, unsigned int state_ind
 // maybe change directly the current state here,
 // no need to that all the time inside high level language
 bool
-rcl_invoke_transition(rcl_state_machine_t* state_machine, rcl_state_t transition_index)
+rcl_invoke_transition(rcl_state_machine_t * state_machine,
+  rcl_state_t transition_index)
 {
   unsigned int current_index = state_machine->current_state->index;
-  rcl_transition_array_t* transitions = rcl_get_transitions_by_index(&state_machine->transition_map, current_index);
+  rcl_transition_array_t * transitions = rcl_get_transitions_by_index(
+    &state_machine->transition_map, current_index);
 
-  if (transitions == NULL)
-  {
+  if (transitions == NULL) {
     return false;
   }
   bool success = false;
-  for (unsigned int i=0; i<transitions->size; ++i)
-  {
-    if (transitions->transitions[i].transition_state.index == transition_index.index)
-    {
-      ((bool(*)(void))transitions->transitions[i].callback)();
+  for (unsigned int i = 0; i < transitions->size; ++i) {
+    if (transitions->transitions[i].transition_state.index == transition_index.index) {
+      ((bool (*)(void))transitions->transitions[i].callback)();
       success = true;
       // break here ?! would allow only one to one transitions
     }

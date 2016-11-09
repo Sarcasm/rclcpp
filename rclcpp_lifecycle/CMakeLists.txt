@@ -65,4 +65,9 @@ endmacro()
 
 call_for_each_rmw_implementation(targets GENERATE_DEFAULT)
 
+if(BUILD_TESTING)
+  find_package(ament_lint_auto REQUIRED)
+  ament_lint_auto_find_test_dependencies()
+endif()
+
 ament_package()

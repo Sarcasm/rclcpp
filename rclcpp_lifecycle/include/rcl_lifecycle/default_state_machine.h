@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef RCL__DEFAULT_STATE_MACHINE_H_
-#define RCL__DEFAULT_STATE_MACHINE_H_
+#ifndef RCL_LIFECYCLE__DEFAULT_STATE_MACHINE_H_
+#define RCL_LIFECYCLE__DEFAULT_STATE_MACHINE_H_
 
 #include <rcl_lifecycle/visibility_control.h>
 
@@ -39,4 +39,4 @@ const rcl_state_t LIFECYCLE_EXPORT rcl_state_errorprocessing = {"errorprocessing
 }
 #endif  // extern "C"
 
-#endif  // RCL__DEFAULT_STATE_MACHINE_H_
+#endif  // RCL_LIFECYCLE__DEFAULT_STATE_MACHINE_H_

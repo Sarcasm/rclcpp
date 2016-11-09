@@ -13,8 +13,8 @@
 // limitations under the License.
 
 
-#ifndef RCL__TRANSITION_MAP_H_
-#define RCL__TRANSITION_MAP_H_
+#ifndef RCL_LIFECYCLE__TRANSITION_MAP_H_
+#define RCL_LIFECYCLE__TRANSITION_MAP_H_
 
 #if __cplusplus
 extern "C"
@@ -32,7 +32,7 @@ typedef struct _rcl_state_transition_t rcl_state_transition_t;
  */
 typedef struct LIFECYCLE_EXPORT _transition_array
 {
-  rcl_state_transition_t* transitions;
+  rcl_state_transition_t * transitions;
   unsigned int size;
 } rcl_transition_array_t;
 
@@ -42,17 +42,18 @@ typedef struct LIFECYCLE_EXPORT _transition_array
  */
 typedef struct LIFECYCLE_EXPORT _map
 {
-  //rcl_state_t* state_index;
-  // associative array between primary state and their respective transitions
+  // associative array between primary state
+  // and their respective transitions
   // 1 ps -> 1 transition_array
-  rcl_state_t* primary_states;
-  rcl_transition_array_t* transition_arrays;
+  rcl_state_t * primary_states;
+  rcl_transition_array_t * transition_arrays;
   unsigned int size;
 } rcl_transition_map_t;
 
 LIFECYCLE_EXPORT
 void
-rcl_register_primary_state(rcl_transition_map_t* m, rcl_state_t primary_state);
+rcl_register_primary_state(rcl_transition_map_t * m,
+  rcl_state_t primary_state);
 
 /**
  * @brief appends a transition in a map
@@ -61,7 +62,8 @@ rcl_register_primary_state(rcl_transition_map_t* m, rcl_state_t primary_state);
  */
 LIFECYCLE_EXPORT
 void
-rcl_register_transition_by_state(rcl_transition_map_t* m, rcl_state_t start, rcl_state_t goal, rcl_state_transition_t transition);
+rcl_register_transition_by_state(rcl_transition_map_t * m,
+  rcl_state_t start, rcl_state_t goal, rcl_state_transition_t transition);
 
 /**
  * @brief appends a transition in a map
@@ -70,7 +72,8 @@ rcl_register_transition_by_state(rcl_transition_map_t* m, rcl_state_t start, rcl
  */
 LIFECYCLE_EXPORT
 void
-rcl_register_transition_by_label(rcl_transition_map_t* m, const char* start_label, const char* goal_label, rcl_state_transition_t transition);
+rcl_register_transition_by_label(rcl_transition_map_t * m,
+  const char * start_label, const char * goal_label, rcl_state_transition_t transition);
 
 /**
  * @brief appends a transition in a map
@@ -79,50 +82,55 @@ rcl_register_transition_by_label(rcl_transition_map_t* m, const char* start_labe
  */
 LIFECYCLE_EXPORT
 void
-rcl_register_transition_by_index(rcl_transition_map_t* m, unsigned int start_index, unsigned int goal_index, rcl_state_transition_t transition);
+rcl_register_transition_by_index(rcl_transition_map_t * m,
+  unsigned int start_index, unsigned int goal_index, rcl_state_transition_t transition);
 
 /**
  * @brief gets the registered primary state based on a label
  * @return primary state pointer, NULL if not found
  */
 LIFECYCLE_EXPORT
-rcl_state_t*
-rcl_get_primary_state_by_label(rcl_transition_map_t* m, const char* label);
+rcl_state_t *
+rcl_get_primary_state_by_label(rcl_transition_map_t * m,
+  const char * label);
 /**
  * @brief gets the registered primary state based on a index
  * @return primary state pointer, NULL if not found
  */
 LIFECYCLE_EXPORT
-rcl_state_t*
-rcl_get_primary_state_by_index(rcl_transition_map_t* m, unsigned int index);
+rcl_state_t *
+rcl_get_primary_state_by_index(rcl_transition_map_t * m,
+  unsigned int index);
 
 /**
  * @brief gets all transitions based on a label
  * label is supposed to come from a rcl_state_t object
  */
 LIFECYCLE_EXPORT
-rcl_transition_array_t*
-rcl_get_transitions_by_label(rcl_transition_map_t* m, const char* label);
+rcl_transition_array_t *
+rcl_get_transitions_by_label(rcl_transition_map_t * m,
+  const char * label);
 /**
  * @brief gets all transitions based on a state
  * state is supposed to come from a rcl_state_t object
  */
 LIFECYCLE_EXPORT
-rcl_transition_array_t*
-rcl_get_transitions_by_index(rcl_transition_map_t* m, unsigned int index);
+rcl_transition_array_t *
+rcl_get_transitions_by_index(rcl_transition_map_t * m,
+  unsigned int index);
 
 /**
  * @brief helper functions to print
  */
 LIFECYCLE_EXPORT
 void
-rcl_print_transition_array(const rcl_transition_array_t* transition_array);
+rcl_print_transition_array(const rcl_transition_array_t * transition_array);
 LIFECYCLE_EXPORT
 void
-rcl_print_transition_map(const rcl_transition_map_t* m);
+rcl_print_transition_map(const rcl_transition_map_t * m);
 
 #if __cplusplus
 }
 #endif
 
-#endif  // RCL__TRANSITION_MAP_H_
+#endif  // RCL_LIFECYCLE__TRANSITION_MAP_H_
