@@ -20,11 +20,6 @@ extern "C"
 {
 #endif
 
-//#include <stdbool.h>
-//#define bool int;
-// #ifdef __cplusplus
-// #error WRONG COMPILER
-// #endif
 #ifndef __cplusplus
 typedef int bool;
 #define true 1

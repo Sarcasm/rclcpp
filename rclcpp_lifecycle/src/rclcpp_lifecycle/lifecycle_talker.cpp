@@ -105,34 +105,5 @@ int main(int argc, char * argv[])
   time_out = std::async(std::launch::async, time_out_lambda);
   exe.spin_until_future_complete(time_out);
 
-  /*
-  while (rclcpp::ok() && i <= 10) {
-    exe.spin_once();
-    //loop_rate.sleep();
-    ++i;
-  }
-
-  if (!lm.activate("my_node1"))
-  {
-    return -1;
-  }
-
-  while (rclcpp::ok() && i <= 20) {
-    exe.spin_once();
-    //loop_rate.sleep();
-    ++i;
-  }
-
-  if (!lm.deactivate("my_node1"))
-  {
-    return -1;
-  }
-
-  while (rclcpp::ok() && i <= 30) {
-    exe.spin_once(std::chrono::nanoseconds(0));
-    //loop_rate.sleep();
-    ++i;
-  }
-  */
   return 0;
 }
