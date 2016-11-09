@@ -78,30 +78,39 @@ typedef struct LIFECYCLE_EXPORT _rcl_state_machine_t
  * @return the transition state which is valid
  * NULL if not available
  */
+LIFECYCLE_EXPORT
 const rcl_state_transition_t*
-LIFECYCLE_EXPORT rcl_is_valid_transition_by_index(rcl_state_machine_t* state_machine, unsigned int transition_index);
+rcl_is_valid_transition_by_index(rcl_state_machine_t* state_machine, unsigned int transition_index);
+LIFECYCLE_EXPORT
 const rcl_state_transition_t*
-LIFECYCLE_EXPORT rcl_is_valid_transition_by_label(rcl_state_machine_t* state_machine, const char* transition_label);
+rcl_is_valid_transition_by_label(rcl_state_machine_t* state_machine, const char* transition_label);
 
+LIFECYCLE_EXPORT
 const rcl_state_transition_t*
-LIFECYCLE_EXPORT rcl_get_registered_transition_by_index(rcl_state_machine_t* state_machine, unsigned int transition_state_index);
+rcl_get_registered_transition_by_index(rcl_state_machine_t* state_machine, unsigned int transition_state_index);
+LIFECYCLE_EXPORT
 const rcl_state_transition_t*
-LIFECYCLE_EXPORT rcl_get_registered_transition_by_label(rcl_state_machine_t* state_machine, const char* transition_state_label);
+rcl_get_registered_transition_by_label(rcl_state_machine_t* state_machine, const char* transition_state_label);
 
+LIFECYCLE_EXPORT
 rcl_state_t
-LIFECYCLE_EXPORT rcl_create_state(unsigned int state, char* label);
+rcl_create_state(unsigned int state, char* label);
 
+LIFECYCLE_EXPORT
 rcl_state_transition_t
-LIFECYCLE_EXPORT rcl_create_transition(rcl_state_t start, rcl_state_t goal);
+rcl_create_transition(rcl_state_t start, rcl_state_t goal);
 
+LIFECYCLE_EXPORT
 rcl_state_machine_t
-LIFECYCLE_EXPORT rcl_get_default_state_machine();
+rcl_get_default_state_machine();
 
+LIFECYCLE_EXPORT
 void
-LIFECYCLE_EXPORT rcl_register_callback(rcl_state_machine_t* state_machine, unsigned int state_index, unsigned int transition_index, bool(*fcn)(void));
+rcl_register_callback(rcl_state_machine_t* state_machine, unsigned int state_index, unsigned int transition_index, bool(*fcn)(void));
 
+LIFECYCLE_EXPORT
 bool
-LIFECYCLE_EXPORT rcl_invoke_transition(rcl_state_machine_t* state_machine, rcl_state_t transition_index);
+rcl_invoke_transition(rcl_state_machine_t* state_machine, rcl_state_t transition_index);
 
 #if __cplusplus
 }

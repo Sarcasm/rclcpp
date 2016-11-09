@@ -18,6 +18,10 @@
 #include <memory>
 #include <vector>
 #include <map>
+#include <functional>
+
+#include <rclcpp_lifecycle/lifecycle_node.hpp>
+#include <rclcpp_lifecycle/lifecycle_manager.hpp>
 
 #include <rcl_lifecycle/lifecycle_state.h>
 #include <rcl_lifecycle/default_state_machine.h>
@@ -27,8 +31,9 @@ namespace rclcpp
 namespace lifecycle
 {
 
-using NodeInterfacePtr = std::shared_ptr<node::lifecycle::LifecycleNodeInterface>;
-using NodeInterfaceWeakPtr = std::weak_ptr<node::lifecycle::LifecycleNodeInterface>;
+using NodeInterface = rclcpp::node::lifecycle::LifecycleNode;
+using NodeInterfacePtr = std::shared_ptr<rclcpp::node::lifecycle::LifecycleNodeInterface>;
+using NodeInterfaceWeakPtr = std::weak_ptr<rclcpp::node::lifecycle::LifecycleNodeInterface>;
 
 struct NodeStateMachine
 {
@@ -37,13 +42,12 @@ struct NodeStateMachine
   std::map<LifecycleTransitionsT, std::function<bool(void)>> cb_map;
 };
 
-class LifecycleManager::LifecycleManagerImpl
+class LIFECYCLE_EXPORT LifecycleManager::LifecycleManagerImpl
 {
 public:
   LifecycleManagerImpl() = default;
   ~LifecycleManagerImpl() = default;
 
-  LIFECYCLE_EXPORT
   void
   add_node_interface(const NodeInterfacePtr& node_interface)
   {
@@ -51,7 +55,6 @@ public:
     add_node_interface(node_interface, state_machine);
   }
 
-  LIFECYCLE_EXPORT
   void
   add_node_interface(const NodeInterfacePtr& node_interface, rcl_state_machine_t custom_state_machine)
   {
@@ -62,7 +65,6 @@ public:
 
     // register default callbacks
     // maybe optional
-    using NodeInterface = node::lifecycle::LifecycleNodeInterface;
     std::function<bool(void)> cb_configuring = std::bind(&NodeInterface::on_configure, node_interface);
     std::function<bool(void)> cb_cleaningup = std::bind(&NodeInterface::on_cleanup, node_interface);
     std::function<bool(void)> cb_shuttingdown = std::bind(&NodeInterface::on_shutdown, node_interface);
