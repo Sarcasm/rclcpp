@@ -41,6 +41,7 @@ macro(targets)
   get_rclcpp_information("${rmw_implementation}" "rclcpp${target_suffix}")
 
   add_library(rclcpp_lifecycle${target_suffix}
+    SHARED
     src/rclcpp_lifecycle/lifecycle_manager.cpp)
   target_link_libraries(rclcpp_lifecycle${target_suffix}
     rcl_lifecycle)
@@ -54,8 +55,12 @@ macro(targets)
   ament_target_dependencies(lifecycle_talker${target_suffix}
     "rclcpp${target_suffix}"
     "std_msgs")
-  install(TARGETS lifecycle_talker${target_suffix}
-    DESTINATION bin)
+
+  install(TARGETS rclcpp_lifecycle${target_suffix} lifecycle_talker${target_suffix}
+    ARCHIVE DESTINATION lib
+    LIBRARY DESTINATION lib
+    RUNTIME DESTINATION bin
+    )
 endmacro()
 
 call_for_each_rmw_implementation(targets GENERATE_DEFAULT)
