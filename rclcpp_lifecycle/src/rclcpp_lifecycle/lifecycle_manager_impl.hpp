@@ -50,14 +50,14 @@ public:
   ~LifecycleManagerImpl() = default;
 
   void
-  add_node_interface(const NodeInterfacePtr & node_interface)
+  add_node_interface(const std::string & node_name, const NodeInterfacePtr & node_interface)
   {
     rcl_state_machine_t state_machine = rcl_get_default_state_machine();
-    add_node_interface(node_interface, state_machine);
+    add_node_interface(node_name, node_interface, state_machine);
   }
 
   void
-  add_node_interface(const NodeInterfacePtr & node_interface,
+  add_node_interface(const std::string & node_name, const NodeInterfacePtr & node_interface,
     rcl_state_machine_t custom_state_machine)
   {
     NodeStateMachine node_state_machine;
@@ -86,8 +86,7 @@ public:
     node_state_machine.cb_map[LifecycleTransitionsT::DEACTIVATING] = cb_deactivating;
     node_state_machine.cb_map[LifecycleTransitionsT::ERRORPROCESSING] = cb_error;
 
-    // TODO(karsten1987): clarify what do if node already exists
-    auto node_name = node_interface->get_name();
+    // TODO(karsten1987): clarify what do if node already exists;
     node_handle_map_[node_name] = node_state_machine;
   }
 

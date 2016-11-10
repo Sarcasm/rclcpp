@@ -56,11 +56,13 @@ macro(targets)
     "rclcpp${target_suffix}"
     "std_msgs")
 
-  install(TARGETS rclcpp_lifecycle${target_suffix} lifecycle_talker${target_suffix}
+  install(TARGETS
+    rclcpp_lifecycle${target_suffix}
+    lifecycle_talker${target_suffix}
     ARCHIVE DESTINATION lib
     LIBRARY DESTINATION lib
     RUNTIME DESTINATION bin
-    )
+  )
 endmacro()
 
 call_for_each_rmw_implementation(targets GENERATE_DEFAULT)

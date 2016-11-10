@@ -63,15 +63,19 @@ class LIFECYCLE_EXPORT LifecycleManager : public LifecycleManagerInterface
 {
 public:
   using NodeInterfacePtr = std::shared_ptr<node::lifecycle::LifecycleNodeInterface>;
+  using NodePtr = std::shared_ptr<node::lifecycle::LifecycleNode>;
 
   LifecycleManager();
   ~LifecycleManager();
 
   void
-  add_node_interface(const NodeInterfacePtr & node_interface);
+  add_node_interface(const NodePtr & node);
 
   void
-  add_node_interface(const NodeInterfacePtr & node_interface,
+  add_node_interface(const std::string & node_name, const NodeInterfacePtr & node_interface);
+
+  void
+  add_node_interface(const std::string & node_name, const NodeInterfacePtr & node_interface,
     rcl_state_machine_t custom_state_machine);
 
   template<typename T>

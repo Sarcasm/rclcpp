@@ -30,16 +30,24 @@ LifecycleManager::LifecycleManager()
 LifecycleManager::~LifecycleManager() = default;
 
 void
-LifecycleManager::add_node_interface(const NodeInterfacePtr & node_interface)
+LifecycleManager::add_node_interface(const NodePtr & node)
 {
-  impl_->add_node_interface(node_interface);
+  add_node_interface(node->get_base_interface()->get_name(), node);
 }
 
 void
-LifecycleManager::add_node_interface(const NodeInterfacePtr & node_interface,
+LifecycleManager::add_node_interface(const std::string & node_name,
+  const NodeInterfacePtr & node_interface)
+{
+  impl_->add_node_interface(node_name, node_interface);
+}
+
+void
+LifecycleManager::add_node_interface(const std::string & node_name,
+  const NodeInterfacePtr & node_interface,
   rcl_state_machine_t custom_state_machine)
 {
-  impl_->add_node_interface(node_interface, custom_state_machine);
+  impl_->add_node_interface(node_name, node_interface, custom_state_machine);
 }
 
 bool

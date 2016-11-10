@@ -25,6 +25,8 @@
 
 #include "std_msgs/msg/string.hpp"
 
+#define STRICTLY_DRY 0
+
 class MyLifecycleNode : public rclcpp::node::lifecycle::LifecycleNode
 {
 public:
@@ -33,9 +35,16 @@ public:
   {
     msg_ = std::make_shared<std_msgs::msg::String>();
 
+#if STRICTLY_DRY
+    // Version 1
+    pub_ = this->get_communication_interface()->create_publisher<std_msgs::msg::String>("chatter");
+    timer_ = this->get_communication_interface()->create_wall_timer(
+      1_s, std::bind(&MyLifecycleNode::publish, this));
+#else
+    // Version 2
     pub_ = this->create_publisher<std_msgs::msg::String>("chatter");
-
     timer_ = this->create_wall_timer(1_s, std::bind(&MyLifecycleNode::publish, this));
+#endif
   }
 
   void publish()
@@ -81,10 +90,16 @@ int main(int argc, char * argv[])
 
   std::shared_ptr<MyLifecycleNode> lc_node = std::make_shared<MyLifecycleNode>("lc_talker");
 
+#if STRICTLY_DRY
+  auto node_name = lc_node->get_base_interface()->get_name();
+#else
+  auto node_name = lc_node->get_name();
+#endif
+
   rclcpp::lifecycle::LifecycleManager lm;
   lm.add_node_interface(lc_node);
 
-  exe.add_node(lc_node);
+  exe.add_node(lc_node->get_communication_interface());
 
   auto time_out_lambda = []() -> int {
       std::this_thread::sleep_for(std::chrono::seconds(10));
@@ -93,15 +108,15 @@ int main(int argc, char * argv[])
 
   // configure
   // dummy mockup for now!
-  lm.configure("my_node1");
+  lm.configure(node_name);
   std::shared_future<int> time_out = std::async(std::launch::async, time_out_lambda);
   exe.spin_until_future_complete(time_out);
 
-  lm.activate("my_node1");
+  lm.activate(node_name);
   time_out = std::async(std::launch::async, time_out_lambda);
   exe.spin_until_future_complete(time_out);
 
-  lm.deactivate("my_node1");
+  lm.deactivate(node_name);
   time_out = std::async(std::launch::async, time_out_lambda);
   exe.spin_until_future_complete(time_out);
 
