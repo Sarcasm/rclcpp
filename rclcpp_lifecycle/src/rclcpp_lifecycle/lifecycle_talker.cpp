@@ -27,23 +27,23 @@
 
 #define STRICTLY_DRY 0
 
-class MyLifecycleNode : public rclcpp::node::lifecycle::LifecycleNode
+class LifecycleTalker : public rclcpp::node::lifecycle::LifecycleNode
 {
 public:
-  explicit MyLifecycleNode(const std::string & node_name, bool intra_process_comms = false)
+  explicit LifecycleTalker(const std::string & node_name, bool intra_process_comms = false)
   : rclcpp::node::lifecycle::LifecycleNode(node_name, intra_process_comms)
   {
     msg_ = std::make_shared<std_msgs::msg::String>();
 
 #if STRICTLY_DRY
     // Version 1
-    pub_ = this->get_communication_interface()->create_publisher<std_msgs::msg::String>("chatter");
+    pub_ = this->get_communication_interface()->create_publisher<std_msgs::msg::String>("lifecycle_chatter");
     timer_ = this->get_communication_interface()->create_wall_timer(
-      1_s, std::bind(&MyLifecycleNode::publish, this));
+      1_s, std::bind(&LifecycleTalker::publish, this));
 #else
     // Version 2
-    pub_ = this->create_publisher<std_msgs::msg::String>("chatter");
-    timer_ = this->create_wall_timer(1_s, std::bind(&MyLifecycleNode::publish, this));
+    pub_ = this->create_publisher<std_msgs::msg::String>("lifecycle_chatter");
+    timer_ = this->create_wall_timer(1_s, std::bind(&LifecycleTalker::publish, this));
 #endif
   }
 
@@ -80,6 +80,29 @@ private:
   rclcpp::TimerBase::SharedPtr timer_;
 };
 
+class LifecycleListener : public rclcpp::node::Node
+{
+public:
+  LifecycleListener(const std::string& node_name)
+    : rclcpp::node::Node(node_name)
+  {
+    sub_data_ = this->create_subscription<std_msgs::msg::String>("lifecycle_chatter", std::bind(&LifecycleListener::data_callback, this, std::placeholders::_1));
+    sub_notification_ = this->create_subscription<std_msgs::msg::String>("lifecycle_manager__lc_talker", std::bind(&LifecycleListener::notification_callback, this, std::placeholders::_1));
+  };
+
+  void data_callback(const std_msgs::msg::String::SharedPtr msg)
+  {
+    std::cout << "I heard data: [" << msg->data << "]" << std::endl;
+  }
+
+  void notification_callback(const std_msgs::msg::String::SharedPtr msg)
+  {
+    std::cout << "I heard a notification: [" << msg->data << "]" << std::endl;
+  }
+private:
+  std::shared_ptr<rclcpp::subscription::Subscription<std_msgs::msg::String>> sub_data_;
+  std::shared_ptr<rclcpp::subscription::Subscription<std_msgs::msg::String>> sub_notification_;
+};
 
 int main(int argc, char * argv[])
 {
@@ -88,7 +111,7 @@ int main(int argc, char * argv[])
 
   rclcpp::executors::MultiThreadedExecutor exe;
 
-  std::shared_ptr<MyLifecycleNode> lc_node = std::make_shared<MyLifecycleNode>("lc_talker");
+  std::shared_ptr<LifecycleTalker> lc_node = std::make_shared<LifecycleTalker>("lc_talker");
 
 #if STRICTLY_DRY
   auto node_name = lc_node->get_base_interface()->get_name();
@@ -99,7 +122,11 @@ int main(int argc, char * argv[])
   rclcpp::lifecycle::LifecycleManager lm;
   lm.add_node_interface(lc_node);
 
+
+  std::shared_ptr<LifecycleListener> lc_listener = std::make_shared<LifecycleListener>("lc_listener");
+
   exe.add_node(lc_node->get_communication_interface());
+  exe.add_node(lc_listener);
 
   auto time_out_lambda = []() -> int {
       std::this_thread::sleep_for(std::chrono::seconds(10));
