@@ -16,39 +16,12 @@
 #ifndef RCL_LIFECYCLE__TRANSITION_MAP_H_
 #define RCL_LIFECYCLE__TRANSITION_MAP_H_
 
+#include <rcl_lifecycle/data_types.h>
+
 #if __cplusplus
 extern "C"
 {
 #endif
-
-typedef struct _rcl_state_t rcl_state_t;
-typedef struct _rcl_state_transition_t rcl_state_transition_t;
-
-/**
- * @brief All transitions which are
- * valid associations for a primary state.
- * One array belongs to one primary state
- * within the map.
- */
-typedef struct LIFECYCLE_EXPORT _transition_array
-{
-  rcl_state_transition_t * transitions;
-  unsigned int size;
-} rcl_transition_array_t;
-
-/**
- * @brief stores an array of transitions
- * index by a start state
- */
-typedef struct LIFECYCLE_EXPORT _map
-{
-  // associative array between primary state
-  // and their respective transitions
-  // 1 ps -> 1 transition_array
-  rcl_state_t * primary_states;
-  rcl_transition_array_t * transition_arrays;
-  unsigned int size;
-} rcl_transition_map_t;
 
 LIFECYCLE_EXPORT
 void

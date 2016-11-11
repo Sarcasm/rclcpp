@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef RCL_LIFECYCLE__LIFECYCLE_STATE_H_
-#define RCL_LIFECYCLE__LIFECYCLE_STATE_H_
+#ifndef RCL_LIFECYCLE__RCL_LIFECYCLE_H_
+#define RCL_LIFECYCLE__RCL_LIFECYCLE_H_
 
 #if __cplusplus
 extern "C"
@@ -21,54 +21,16 @@ extern "C"
 #endif
 
 #ifndef __cplusplus
-typedef int bool;
-#define true 1
-#define false 0
+  #ifndef bool
+    #define bool int
+    #define true 1
+    #define false 0
+  #endif
 #endif
 
 #include <rcl_lifecycle/visibility_control.h>
-#include <rcl_lifecycle/transition_map.h>
-
-/**
- * @brief simple definition of a state
- * @param state: integer giving the state
- * @param label: label for easy indexing
- */
-typedef struct LIFECYCLE_EXPORT _rcl_state_t
-{
-  const char * label;
-  unsigned int index;
-} rcl_state_t;
-
-/**
- * @brief transition definition
- * @param start: rcl_state_t as a start state
- * @param goal: rcl_state_t as a goal state
- * TODO: Maybe specify callback pointer here
- * and call on_* functions directly
- */
-typedef struct LIFECYCLE_EXPORT _rcl_state_transition_t
-{
-  rcl_state_t transition_state;
-  void * callback;
-  rcl_state_t * start;
-  rcl_state_t * goal;
-} rcl_state_transition_t;
-
-/**
- * @brief: statemachine object holding
- * a variable state object as current state
- * of the complete machine.
- * @param transition_map: a map object of all
- * possible transitions registered with this
- * state machine.
- */
-typedef struct LIFECYCLE_EXPORT _rcl_state_machine_t
-{
-  const rcl_state_t * current_state;
-  rcl_transition_map_t transition_map;
-} rcl_state_machine_t;
-
+#include <rcl_lifecycle/data_types.h>
+#include <rcl_lifecycle/states.h>
 
 // function definitions
 /*
@@ -106,7 +68,7 @@ rcl_create_transition(rcl_state_t start, rcl_state_t goal);
 
 LIFECYCLE_EXPORT
 rcl_state_machine_t
-rcl_get_default_state_machine();
+rcl_get_default_state_machine(const char* node_name);
 
 LIFECYCLE_EXPORT
 void
@@ -115,11 +77,16 @@ rcl_register_callback(rcl_state_machine_t * state_machine,
 
 LIFECYCLE_EXPORT
 bool
-rcl_invoke_transition(rcl_state_machine_t * state_machine,
-  rcl_state_t transition_index);
+rcl_start_transition_by_index(rcl_state_machine_t * state_machine,
+  unsigned int transition_index);
+
+LIFECYCLE_EXPORT
+bool
+rcl_finish_transition_by_index(rcl_state_machine_t * state_machine,
+  unsigned int transition_index, bool success);
 
 #if __cplusplus
 }
 #endif  // extern "C"
 
-#endif  // RCL_LIFECYCLE__LIFECYCLE_STATE_H_
+#endif  // RCL_LIFECYCLE__RCL_LIFECYCLE_H_

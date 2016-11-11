@@ -31,7 +31,7 @@ namespace lifecycle
 {
 
 // *INDENT-OFF*
-enum class LifecyclePrimaryStatesT : std::uint8_t
+enum class LifecyclePrimaryStatesT : unsigned int
 {
   UNCONFIGURED  = 0,
   INACTIVE      = 1,
@@ -39,7 +39,7 @@ enum class LifecyclePrimaryStatesT : std::uint8_t
   FINALIZED     = 3
 };
 
-enum class LifecycleTransitionsT : std::uint8_t
+enum class LifecycleTransitionsT : unsigned int
 {
   CONFIGURING     = 4,
   CLEANINGUP      = 5,

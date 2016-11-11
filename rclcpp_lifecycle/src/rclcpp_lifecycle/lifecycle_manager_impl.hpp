@@ -24,8 +24,7 @@
 #include "rclcpp_lifecycle/lifecycle_node.hpp"
 #include "rclcpp_lifecycle/lifecycle_manager.hpp"
 
-#include "rcl_lifecycle/lifecycle_state.h"
-#include "rcl_lifecycle/default_state_machine.h"
+#include "rcl_lifecycle/rcl_lifecycle.h"
 
 namespace rclcpp
 {
@@ -52,7 +51,7 @@ public:
   void
   add_node_interface(const std::string & node_name, const NodeInterfacePtr & node_interface)
   {
-    rcl_state_machine_t state_machine = rcl_get_default_state_machine();
+    rcl_state_machine_t state_machine = rcl_get_default_state_machine(node_name.c_str());
     add_node_interface(node_name, node_interface, state_machine);
   }
 
@@ -116,29 +115,40 @@ public:
 
     auto node_handle_iter = node_handle_map_.find(node_name);
     if (node_handle_iter == node_handle_map_.end()) {
-      fprintf(stderr, "Node with name %s is not registered\n", node_name.c_str());
+      fprintf(stderr, "%s:%d, Node with name %s is not registered\n",
+          __FILE__, __LINE__, node_name.c_str());
       return false;
     }
 
     auto node_handle = node_handle_iter->second.weak_node_handle.lock();
     if (!node_handle) {
+      fprintf(stderr, "%s:%d, Nodehandle is not available. Was it destroyed outside the lifecycle manager?\n",
+          __FILE__, __LINE__);
       return false;
     }
 
-    // ask RCL if this is a valid state
-    const rcl_state_transition_t * transition = rcl_is_valid_transition_by_index(
-      &node_handle_iter->second.state_machine, static_cast<std::uint8_t>(lifecycle_transition));
-    if (transition == NULL) {
+    unsigned int transition_index = static_cast<unsigned int>(lifecycle_transition);
+    if (!rcl_start_transition_by_index(&node_handle_iter->second.state_machine, transition_index))
+    {
+      fprintf(stderr, "%s:%d, Unable to start transition %u from current state %s\n",
+          __FILE__, __LINE__, transition_index, node_handle_iter->second.state_machine.current_state->label);
       return false;
     }
 
+    // Since we set always set a default callback,
+    // we don't have to check for nullptr here
     std::function<bool(void)> callback = node_handle_iter->second.cb_map[lifecycle_transition];
-    if (!callback()) {
-      node_handle->on_error();
-      node_handle_iter->second.state_machine.current_state = &rcl_state_errorprocessing;
+    auto success = callback();
+
+    if (!rcl_finish_transition_by_index(&node_handle_iter->second.state_machine,
+          transition_index, success)) {
+      fprintf(stderr, "Failed to finish transition %u. Current state is now: %s\n",
+          transition_index, node_handle_iter->second.state_machine.current_state->label);
       return false;
     }
-    node_handle_iter->second.state_machine.current_state = transition->goal;
+    // This true holds in both cases where the actual callback
+    // was successful or not, since at this point we have a valid transistion
+    // to either a new primary state or error state
     return true;
   }
 
