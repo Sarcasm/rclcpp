@@ -67,8 +67,12 @@ rcl_state_transition_t
 rcl_create_transition(rcl_state_t start, rcl_state_t goal);
 
 LIFECYCLE_EXPORT
-rcl_state_machine_t
-rcl_get_default_state_machine(const char* node_name);
+rcl_ret_t
+rcl_state_machine_init(rcl_state_machine_t* state_machine, const char* node_name, bool default_states);
+
+LIFECYCLE_EXPORT
+bool
+rcl_state_machine_fini(rcl_state_machine_t* state_machine);
 
 LIFECYCLE_EXPORT
 void

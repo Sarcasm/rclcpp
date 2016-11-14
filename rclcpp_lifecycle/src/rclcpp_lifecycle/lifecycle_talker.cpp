@@ -24,6 +24,7 @@
 #include "rclcpp_lifecycle/lifecycle_publisher.hpp"
 
 #include "std_msgs/msg/string.hpp"
+#include "rclcpp_lifecycle/msg/transition.hpp"
 
 #define STRICTLY_DRY 0
 
@@ -87,7 +88,7 @@ public:
     : rclcpp::node::Node(node_name)
   {
     sub_data_ = this->create_subscription<std_msgs::msg::String>("lifecycle_chatter", std::bind(&LifecycleListener::data_callback, this, std::placeholders::_1));
-    sub_notification_ = this->create_subscription<std_msgs::msg::String>("lifecycle_manager__lc_talker", std::bind(&LifecycleListener::notification_callback, this, std::placeholders::_1));
+    sub_notification_ = this->create_subscription<rclcpp_lifecycle::msg::Transition>("lifecycle_manager__lc_talker", std::bind(&LifecycleListener::notification_callback, this, std::placeholders::_1));
   };
 
   void data_callback(const std_msgs::msg::String::SharedPtr msg)
@@ -95,13 +96,13 @@ public:
     std::cout << "I heard data: [" << msg->data << "]" << std::endl;
   }
 
-  void notification_callback(const std_msgs::msg::String::SharedPtr msg)
+  void notification_callback(const rclcpp_lifecycle::msg::Transition::SharedPtr msg)
   {
-    std::cout << "I heard a notification: [" << msg->data << "]" << std::endl;
+    std::cout << "Transition triggered:: [ Going from state " << static_cast<int>(msg->start_state) << " to state " << static_cast<int>(msg->goal_state) << " ] " << std::endl;
   }
 private:
   std::shared_ptr<rclcpp::subscription::Subscription<std_msgs::msg::String>> sub_data_;
-  std::shared_ptr<rclcpp::subscription::Subscription<std_msgs::msg::String>> sub_notification_;
+  std::shared_ptr<rclcpp::subscription::Subscription<rclcpp_lifecycle::msg::Transition>> sub_notification_;
 };
 
 int main(int argc, char * argv[])

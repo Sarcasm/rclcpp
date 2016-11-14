@@ -1,4 +1,4 @@
-// Copyright 2015 Open Source Robotics Foundation, Inc.
+// Copyright 2016 Open Source Robotics Foundation, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -24,12 +24,17 @@ extern "C"
 #include "rcl/rcl.h"
 #include "rosidl_generator_c/message_type_support.h"
 #include "rosidl_generator_c/string_functions.h"
-#include "std_msgs/msg/string.h"
+
+//#include "std_msgs/msg/string.h"
+#include "rclcpp_lifecycle/msg/transition.h"
 
 #include "rcl_lifecycle/rcl_lifecycle.h"
 #include "rcl_lifecycle/transition_map.h"
 
-static std_msgs__msg__String msg;
+#include "default_state_machine.h"
+
+//static std_msgs__msg__String msg;
+static rclcpp_lifecycle__msg__Transition msg;
 
 const rcl_state_transition_t *
 rcl_is_valid_transition_by_index(rcl_state_machine_t * state_machine,
@@ -105,6 +110,58 @@ rcl_get_registered_transition_by_label(rcl_state_machine_t * state_machine,
   return NULL;
 }
 
+rcl_ret_t
+rcl_state_machine_init(rcl_state_machine_t* state_machine, const char* node_name, bool default_states)
+{
+    {  // initialize node handle for notification
+      state_machine->notification_node_handle = rcl_get_zero_initialized_node();
+      rcl_node_options_t node_options = rcl_node_get_default_options();
+      {
+        rcl_ret_t ret = rcl_node_init(&state_machine->notification_node_handle, node_name, &node_options);
+        if (ret != RCL_RET_OK)
+        {
+          fprintf(stderr, "%s:%u, Unable to initialize node handle for state machine\n",
+            __FILE__, __LINE__);
+          state_machine = NULL;
+          return ret;
+        }
+      }
+    }
+
+    {  // initialize publisher
+      state_machine->notification_publisher = rcl_get_zero_initialized_publisher();
+      const rosidl_message_type_support_t * ts = ROSIDL_GET_TYPE_SUPPORT(
+        rclcpp_lifecycle, msg, Transition);
+
+      const char* topic_suffix = "lifecycle_manager__";
+      if (strlen(node_name)+strlen(topic_suffix) >= 255)
+      {
+        fprintf(stderr, "%s:%u, Topic name exceeds maximum size of 255\n",
+          __FILE__, __LINE__);
+        state_machine = NULL;
+        return RCL_RET_ERROR;
+      }
+
+      char topic_name[255];
+      strcpy(topic_name, topic_suffix);
+      strcat(topic_name, node_name);
+      rcl_publisher_options_t publisher_options = rcl_publisher_get_default_options();
+      rcl_ret_t ret = rcl_publisher_init(&state_machine->notification_publisher, &state_machine->notification_node_handle, ts, topic_name, &publisher_options);
+      if (ret != RCL_RET_OK)
+      {
+        state_machine = NULL;
+        return ret;
+      }
+    }
+
+    if (default_states)
+    {
+      rcl_get_default_state_machine(state_machine);
+    }
+    return RCL_RET_OK;
+}
+
+
 void
 rcl_register_callback(rcl_state_machine_t * state_machine,
   unsigned int state_index, unsigned int transition_index, bool (* fcn)(void))
@@ -143,9 +200,17 @@ rcl_start_transition_by_index(rcl_state_machine_t * state_machine,
     return false;
   }
 
-  std_msgs__msg__String__init(&msg);
-  rosidl_generator_c__String__assign(&msg.data, "Transition started");
-  rcl_publish(&state_machine->notification_publisher, &msg);
+  // do the initialization
+  rclcpp_lifecycle__msg__Transition__init(&msg);
+  //rosidl_generator_c__String__assign(&msg.data, "Transition started");
+  msg.start_state = state_machine->current_state->index;
+  msg.goal_state = transition->transition_state.index;
+
+  if (rcl_publish(&state_machine->notification_publisher, &msg) != RCL_RET_OK){
+    fprintf(stderr, "%s:%d, Couldn't publish the notification message.\n",
+        __FILE__, __LINE__);
+  }
+  rclcpp_lifecycle__msg__Transition__fini(&msg);
 
   // Apply a transition state
   state_machine->current_state = &transition->transition_state;
@@ -178,17 +243,26 @@ rcl_finish_transition_by_index(rcl_state_machine_t * state_machine,
 
   // high level transition(callback) was executed correctly
   if (success == true) {
-    std_msgs__msg__String__init(&msg);
-    rosidl_generator_c__String__assign(&msg.data, "Transaction successfully finished");
-    rcl_publish(&state_machine->notification_publisher, &msg);
+    rclcpp_lifecycle__msg__Transition__init(&msg);
+    msg.start_state = transition->transition_state.index;
+    msg.goal_state = transition->goal->index;
+    if (rcl_publish(&state_machine->notification_publisher, &msg) != RCL_RET_OK){
+      fprintf(stderr, "%s:%d, Couldn't publish the notification message.\n",
+          __FILE__, __LINE__);
+    }
+    rclcpp_lifecycle__msg__Transition__fini(&msg);
     state_machine->current_state = transition->goal;
     return true;
   }
 
-  std_msgs__msg__String__init(&msg);
-  rosidl_generator_c__String__assign(&msg.data, "Transaction unsuccessfully finished");
-  rcl_publish(&state_machine->notification_publisher, &msg);
-
+  rclcpp_lifecycle__msg__Transition__init(&msg);
+  msg.start_state = transition->transition_state.index;
+  msg.goal_state = transition->error->index;
+  if (rcl_publish(&state_machine->notification_publisher, &msg) != RCL_RET_OK){
+    fprintf(stderr, "%s:%d, Couldn't publish the notification message.\n",
+        __FILE__, __LINE__);
+  }
+  rclcpp_lifecycle__msg__Transition__fini(&msg);
   state_machine->current_state = transition->error;
   return true;
 }

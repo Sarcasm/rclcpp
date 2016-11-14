@@ -51,7 +51,8 @@ public:
   void
   add_node_interface(const std::string & node_name, const NodeInterfacePtr & node_interface)
   {
-    rcl_state_machine_t state_machine = rcl_get_default_state_machine(node_name.c_str());
+    rcl_state_machine_t state_machine;
+    rcl_state_machine_init(&state_machine, node_name.c_str(), true);
     add_node_interface(node_name, node_interface, state_machine);
   }
 

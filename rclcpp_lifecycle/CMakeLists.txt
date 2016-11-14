@@ -45,7 +45,8 @@ set_source_files_properties(
 macro(targets)
   get_rclcpp_information("${rmw_implementation}" "rclcpp${target_suffix}")
   get_rcl_information("${rmw_implementation}" "rcl${target_suffix}")
-  get_rmw_typesupport(typesupport_impls "${rmw_implementation}" LANGUAGE "c")
+  get_rmw_typesupport(typesupport_impls_c "${rmw_implementation}" LANGUAGE "c")
+  get_rmw_typesupport(typesupport_impls_cpp "${rmw_implementation}" LANGUAGE "cpp")
 
   ### C-Library depending only on RCL
   add_library(
@@ -53,8 +54,7 @@ macro(targets)
     SHARED
     ${rcl_lifecycle_sources})
 
-  foreach(typesupport_impl ${typesupport_impls})
-    message("MY TYPESUpoort_IMPL ${typesupport_impl}")
+  foreach(typesupport_impl ${typesupport_impls_c})
     rosidl_target_interfaces(rcl_lifecycle${target_suffix}
       lifecycle_msgs
       ${typesupport_impl}
@@ -77,6 +77,12 @@ macro(targets)
     src/rclcpp_lifecycle/lifecycle_manager.cpp)
   target_link_libraries(rclcpp_lifecycle${target_suffix}
     rcl_lifecycle${target_suffix})
+  foreach(typesupport_impl ${typesupport_impls_cpp})
+    rosidl_target_interfaces(rclcpp_lifecycle${target_suffix}
+      lifecycle_msgs
+      ${typesupport_impl}
+      )
+  endforeach()
   ament_target_dependencies(rclcpp_lifecycle${target_suffix}
     "rclcpp${target_suffix}")
 
