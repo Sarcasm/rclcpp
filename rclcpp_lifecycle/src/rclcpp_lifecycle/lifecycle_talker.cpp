@@ -110,7 +110,7 @@ int main(int argc, char * argv[])
   setvbuf(stdout, NULL, _IONBF, BUFSIZ);
   rclcpp::init(argc, argv);
 
-  rclcpp::executors::MultiThreadedExecutor exe;
+  rclcpp::executors::SingleThreadedExecutor exe;
 
   std::shared_ptr<LifecycleTalker> lc_node = std::make_shared<LifecycleTalker>("lc_talker");
 
