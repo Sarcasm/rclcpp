@@ -21,7 +21,7 @@ extern "C"
 #include <stdlib.h>
 #include <string.h>
 
-#include <rcl_lifecycle/transition_map.h>
+#include "rcl_lifecycle/transition_map.h"
 
 void
 rcl_register_primary_state(rcl_transition_map_t * m,

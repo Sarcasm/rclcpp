@@ -160,17 +160,17 @@ rcl_state_machine_fini(rcl_state_machine_t* state_machine)
   }
 
   rcl_transition_map_t* transition_map = &state_machine->transition_map;
-  // We have to deallocate here as we do malloc in
-  // transition_map.c
-  rcl_print_transition_map(transition_map);
 
+  // free the primary states array
   free(transition_map->primary_states);
+  transition_map->primary_states = NULL;
   for (unsigned int i = 0; i < transition_map->size; ++i)
   {
-    printf("deleting array with %u entries\n", transition_map->transition_arrays[i].size);
+    // free each transition array associated to a primary state
     free(transition_map->transition_arrays[i].transitions);
     transition_map->transition_arrays[i].transitions = NULL;
   }
+  // free the top level transition array
   free(transition_map->transition_arrays);
   transition_map->transition_arrays = NULL;
 
