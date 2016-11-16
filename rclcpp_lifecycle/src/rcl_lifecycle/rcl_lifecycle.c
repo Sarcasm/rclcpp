@@ -25,7 +25,6 @@ extern "C"
 #include "rosidl_generator_c/message_type_support.h"
 #include "rosidl_generator_c/string_functions.h"
 
-//#include "std_msgs/msg/string.h"
 #include "rclcpp_lifecycle/msg/transition.h"
 
 #include "rcl_lifecycle/rcl_lifecycle.h"
@@ -33,8 +32,113 @@ extern "C"
 
 #include "default_state_machine.h"
 
-//static std_msgs__msg__String msg;
 static rclcpp_lifecycle__msg__Transition msg;
+
+// get zero initialized state machine here
+rcl_state_machine_t
+rcl_get_zero_initialized_state_machine()
+{
+  rcl_state_machine_t state_machine;
+  state_machine.transition_map.size = 0;
+  state_machine.transition_map.primary_states = NULL;
+  state_machine.transition_map.transition_arrays = NULL;
+  state_machine.notification_node_handle = rcl_get_zero_initialized_node();
+  state_machine.notification_publisher = rcl_get_zero_initialized_publisher();
+
+  return state_machine;
+}
+
+rcl_ret_t
+rcl_state_machine_init(rcl_state_machine_t* state_machine, const char* node_name, bool default_states)
+{
+  // TODO(karsten1987): fail when state machine not zero initialized
+  {  // initialize node handle for notification
+    rcl_node_options_t node_options = rcl_node_get_default_options();
+    {
+      rcl_ret_t ret = rcl_node_init(&state_machine->notification_node_handle, node_name, &node_options);
+      if (ret != RCL_RET_OK)
+      {
+        fprintf(stderr, "%s:%u, Unable to initialize node handle for state machine\n",
+            __FILE__, __LINE__);
+        state_machine = NULL;
+        return ret;
+      }
+    }
+  }
+
+  {  // initialize publisher
+    // Build topic, topic suffix hardcoded for now
+    // and limited in length of 255
+    const char* topic_suffix = "lifecycle_manager__state_changes__";
+    if (strlen(node_name)+strlen(topic_suffix) >= 255)
+    {
+      fprintf(stderr, "%s:%u, Topic name exceeds maximum size of 255\n",
+          __FILE__, __LINE__);
+      state_machine = NULL;
+      return RCL_RET_ERROR;
+    }
+    char topic_name[255];
+    strcpy(topic_name, topic_suffix);
+    strcat(topic_name, node_name);
+
+    const rosidl_message_type_support_t * ts = ROSIDL_GET_TYPE_SUPPORT(
+        rclcpp_lifecycle, msg, Transition);
+    rcl_publisher_options_t publisher_options = rcl_publisher_get_default_options();
+    rcl_ret_t ret = rcl_publisher_init(&state_machine->notification_publisher,
+        &state_machine->notification_node_handle, ts, topic_name, &publisher_options);
+
+    if (ret != RCL_RET_OK)
+    {
+      state_machine = NULL;
+      return ret;
+    }
+  }
+
+  if (default_states)
+  {
+    rcl_init_default_state_machine(state_machine);
+  }
+  return RCL_RET_OK;
+}
+
+rcl_ret_t
+rcl_state_machine_fini(rcl_state_machine_t* state_machine)
+{
+  {  // destroy the publisher
+    rcl_ret_t ret = rcl_publisher_fini(&state_machine->notification_publisher,
+        &state_machine->notification_node_handle);
+    if (ret != RCL_RET_OK)
+    {
+      fprintf(stderr, "%s:%u, Failed to destroy lifecycle notification publisher\n",
+          __FILE__, __LINE__);
+    }
+  }
+  {  // destroy the node handle
+    rcl_ret_t ret = rcl_node_fini(&state_machine->notification_node_handle);
+    if (ret != RCL_RET_OK)
+    {
+      fprintf(stderr, "%s:%u, Failed to destroy lifecycle notification node handle\n",
+          __FILE__, __LINE__);
+    }
+  }
+
+  rcl_transition_map_t* transition_map = &state_machine->transition_map;
+  // We have to deallocate here as we do malloc in
+  // transition_map.c
+  rcl_print_transition_map(transition_map);
+
+  free(transition_map->primary_states);
+  for (unsigned int i = 0; i < transition_map->size; ++i)
+  {
+    printf("deleting array with %u entries\n", transition_map->transition_arrays[i].size);
+    free(transition_map->transition_arrays[i].transitions);
+    transition_map->transition_arrays[i].transitions = NULL;
+  }
+  free(transition_map->transition_arrays);
+  transition_map->transition_arrays = NULL;
+
+  return RCL_RET_OK;
+}
 
 const rcl_state_transition_t *
 rcl_is_valid_transition_by_index(rcl_state_machine_t * state_machine,
@@ -45,6 +149,8 @@ rcl_is_valid_transition_by_index(rcl_state_machine_t * state_machine,
     &state_machine->transition_map, current_index);
   if (valid_transitions == NULL)
   {
+    fprintf(stderr, "%s:%u, No transitions registered  for current state %s\n",
+        __FILE__, __LINE__, state_machine->current_state->label);
     return NULL;
   }
   for (unsigned int i = 0; i < valid_transitions->size; ++i) {
@@ -67,6 +173,8 @@ rcl_is_valid_transition_by_label(rcl_state_machine_t * state_machine,
       return &valid_transitions->transitions[i];
     }
   }
+  fprintf(stderr, "%s:%u, No transition matching %u found for current state %s\n",
+      __FILE__, __LINE__, transition_index, state_machine->current_state->label);
   return NULL;
 }
 
@@ -110,58 +218,6 @@ rcl_get_registered_transition_by_label(rcl_state_machine_t * state_machine,
   return NULL;
 }
 
-rcl_ret_t
-rcl_state_machine_init(rcl_state_machine_t* state_machine, const char* node_name, bool default_states)
-{
-    {  // initialize node handle for notification
-      state_machine->notification_node_handle = rcl_get_zero_initialized_node();
-      rcl_node_options_t node_options = rcl_node_get_default_options();
-      {
-        rcl_ret_t ret = rcl_node_init(&state_machine->notification_node_handle, node_name, &node_options);
-        if (ret != RCL_RET_OK)
-        {
-          fprintf(stderr, "%s:%u, Unable to initialize node handle for state machine\n",
-            __FILE__, __LINE__);
-          state_machine = NULL;
-          return ret;
-        }
-      }
-    }
-
-    {  // initialize publisher
-      state_machine->notification_publisher = rcl_get_zero_initialized_publisher();
-      const rosidl_message_type_support_t * ts = ROSIDL_GET_TYPE_SUPPORT(
-        rclcpp_lifecycle, msg, Transition);
-
-      const char* topic_suffix = "lifecycle_manager__";
-      if (strlen(node_name)+strlen(topic_suffix) >= 255)
-      {
-        fprintf(stderr, "%s:%u, Topic name exceeds maximum size of 255\n",
-          __FILE__, __LINE__);
-        state_machine = NULL;
-        return RCL_RET_ERROR;
-      }
-
-      char topic_name[255];
-      strcpy(topic_name, topic_suffix);
-      strcat(topic_name, node_name);
-      rcl_publisher_options_t publisher_options = rcl_publisher_get_default_options();
-      rcl_ret_t ret = rcl_publisher_init(&state_machine->notification_publisher, &state_machine->notification_node_handle, ts, topic_name, &publisher_options);
-      if (ret != RCL_RET_OK)
-      {
-        state_machine = NULL;
-        return ret;
-      }
-    }
-
-    if (default_states)
-    {
-      rcl_get_default_state_machine(state_machine);
-    }
-    return RCL_RET_OK;
-}
-
-
 void
 rcl_register_callback(rcl_state_machine_t * state_machine,
   unsigned int state_index, unsigned int transition_index, bool (* fcn)(void))
@@ -195,14 +251,13 @@ rcl_start_transition_by_index(rcl_state_machine_t * state_machine,
   // we may have to set the current state to something intermediate
   // or simply ignore it
   if (transition->start != state_machine->current_state) {
-    fprintf(stderr, "%s:%d, Wrong transition. State machine is in primary state %s\n",
-        __FILE__, __LINE__, state_machine->current_state->label);
+    fprintf(stderr, "%s:%d, Wrong transition index %s. State machine is in primary state %s\n",
+        __FILE__, __LINE__, transition->start->label, state_machine->current_state->label);
     return false;
   }
 
   // do the initialization
   rclcpp_lifecycle__msg__Transition__init(&msg);
-  //rosidl_generator_c__String__assign(&msg.data, "Transition started");
   msg.start_state = state_machine->current_state->index;
   msg.goal_state = transition->transition_state.index;
 

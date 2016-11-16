@@ -32,6 +32,18 @@ extern "C"
 #include <rcl_lifecycle/data_types.h>
 #include <rcl_lifecycle/states.h>
 
+LIFECYCLE_EXPORT
+rcl_state_machine_t
+rcl_get_zero_initialized_state_machine();
+
+LIFECYCLE_EXPORT
+rcl_ret_t
+rcl_state_machine_init(rcl_state_machine_t* state_machine, const char* node_name, bool default_states);
+
+LIFECYCLE_EXPORT
+rcl_ret_t
+rcl_state_machine_fini(rcl_state_machine_t* state_machine);
+
 // function definitions
 /*
  * @brief traverses the transition map of the given
@@ -65,14 +77,6 @@ rcl_create_state(unsigned int state, char * label);
 LIFECYCLE_EXPORT
 rcl_state_transition_t
 rcl_create_transition(rcl_state_t start, rcl_state_t goal);
-
-LIFECYCLE_EXPORT
-rcl_ret_t
-rcl_state_machine_init(rcl_state_machine_t* state_machine, const char* node_name, bool default_states);
-
-LIFECYCLE_EXPORT
-bool
-rcl_state_machine_fini(rcl_state_machine_t* state_machine);
 
 LIFECYCLE_EXPORT
 void

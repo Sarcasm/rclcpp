@@ -33,20 +33,20 @@ namespace lifecycle
 // *INDENT-OFF*
 enum class LifecyclePrimaryStatesT : unsigned int
 {
-  UNCONFIGURED  = 0,
-  INACTIVE      = 1,
-  ACTIVE        = 2,
-  FINALIZED     = 3
+  UNCONFIGURED  = 1,
+  INACTIVE      = 2,
+  ACTIVE        = 3,
+  FINALIZED     = 4
 };
 
 enum class LifecycleTransitionsT : unsigned int
 {
-  CONFIGURING     = 4,
-  CLEANINGUP      = 5,
-  SHUTTINGDOWN    = 6,
-  ACTIVATING      = 7,
-  DEACTIVATING    = 8,
-  ERRORPROCESSING = 9
+  CONFIGURING     = 10,
+  CLEANINGUP      = 11,
+  SHUTTINGDOWN    = 12,
+  ACTIVATING      = 13,
+  DEACTIVATING    = 14,
+  ERRORPROCESSING = 15
 };
 
 class LifecycleManagerInterface

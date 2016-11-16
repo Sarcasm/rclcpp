@@ -23,6 +23,7 @@
 
 #include "rclcpp_lifecycle/lifecycle_node.hpp"
 #include "rclcpp_lifecycle/lifecycle_manager.hpp"
+#include "rclcpp_lifecycle/srv/get_state.hpp"
 
 #include "rcl_lifecycle/rcl_lifecycle.h"
 
@@ -40,18 +41,26 @@ struct NodeStateMachine
   NodeInterfaceWeakPtr weak_node_handle;
   rcl_state_machine_t state_machine;
   std::map<LifecycleTransitionsT, std::function<bool(void)>> cb_map;
+  std::shared_ptr<rclcpp::service::Service<rclcpp_lifecycle::srv::GetState>> notification_server;
 };
 
 class LIFECYCLE_EXPORT LifecycleManager::LifecycleManagerImpl
 {
 public:
   LifecycleManagerImpl() = default;
-  ~LifecycleManagerImpl() = default;
+  ~LifecycleManagerImpl()
+  {
+    for (auto it=node_handle_map_.begin(); it != node_handle_map_.end(); ++it)
+    {
+      rcl_state_machine_t* rcl_state_machine = &it->second.state_machine;
+      rcl_state_machine_fini(rcl_state_machine);
+    }
+  }
 
   void
   add_node_interface(const std::string & node_name, const NodeInterfacePtr & node_interface)
   {
-    rcl_state_machine_t state_machine;
+    rcl_state_machine_t state_machine = rcl_get_zero_initialized_state_machine();
     rcl_state_machine_init(&state_machine, node_name.c_str(), true);
     add_node_interface(node_name, node_interface, state_machine);
   }
@@ -68,17 +77,17 @@ public:
     // register default callbacks
     // maybe optional
     std::function<bool(void)> cb_configuring = std::bind(
-      &NodeInterface::on_configure, node_interface);
+        &NodeInterface::on_configure, node_interface);
     std::function<bool(void)> cb_cleaningup = std::bind(
-      &NodeInterface::on_cleanup, node_interface);
+        &NodeInterface::on_cleanup, node_interface);
     std::function<bool(void)> cb_shuttingdown = std::bind(
-      &NodeInterface::on_shutdown, node_interface);
+        &NodeInterface::on_shutdown, node_interface);
     std::function<bool(void)> cb_activating = std::bind(
-      &NodeInterface::on_activate, node_interface);
+        &NodeInterface::on_activate, node_interface);
     std::function<bool(void)> cb_deactivating = std::bind(
-      &NodeInterface::on_deactivate, node_interface);
+        &NodeInterface::on_deactivate, node_interface);
     std::function<bool(void)> cb_error = std::bind(
-      &NodeInterface::on_error, node_interface);
+        &NodeInterface::on_error, node_interface);
     node_state_machine.cb_map[LifecycleTransitionsT::CONFIGURING] = cb_configuring;
     node_state_machine.cb_map[LifecycleTransitionsT::CLEANINGUP] = cb_cleaningup;
     node_state_machine.cb_map[LifecycleTransitionsT::SHUTTINGDOWN] = cb_shuttingdown;
@@ -129,6 +138,7 @@ public:
     }
 
     unsigned int transition_index = static_cast<unsigned int>(lifecycle_transition);
+    fprintf(stderr, "GOING TO CHANGE STATE TO %u\n", transition_index);
     if (!rcl_start_transition_by_index(&node_handle_iter->second.state_machine, transition_index))
     {
       fprintf(stderr, "%s:%d, Unable to start transition %u from current state %s\n",

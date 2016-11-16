@@ -30,16 +30,19 @@ extern "C"
 {
 #endif
 
-const rcl_state_t rcl_state_unconfigured     = {"unconfigured", 0};
-const rcl_state_t rcl_state_inactive         = {"inactive", 1};
-const rcl_state_t rcl_state_active           = {"active", 2};
-const rcl_state_t rcl_state_finalized        = {"finalized", 3};
-const rcl_state_t rcl_state_configuring      = {"configuring", 4};
-const rcl_state_t rcl_state_cleaningup       = {"cleaningup", 5};
-const rcl_state_t rcl_state_shuttingdown     = {"shuttingdown", 6};
-const rcl_state_t rcl_state_activating       = {"activating", 7};
-const rcl_state_t rcl_state_deactivating     = {"deactivating", 8};
-const rcl_state_t rcl_state_errorprocessing  = {"errorprocessing", 9};
+const rcl_state_t rcl_state_unknown          = {"unknown", 0};
+const rcl_state_t rcl_state_unconfigured     = {"unconfigured", 1};
+const rcl_state_t rcl_state_inactive         = {"inactive", 2};
+const rcl_state_t rcl_state_active           = {"active", 3};
+const rcl_state_t rcl_state_finalized        = {"finalized", 4};
+
+const rcl_state_t rcl_state_configuring      = {"configuring", 10};
+const rcl_state_t rcl_state_cleaningup       = {"cleaningup", 11};
+const rcl_state_t rcl_state_shuttingdown     = {"shuttingdown", 12};
+const rcl_state_t rcl_state_activating       = {"activating", 13};
+const rcl_state_t rcl_state_deactivating     = {"deactivating", 14};
+const rcl_state_t rcl_state_errorprocessing  = {"errorprocessing", 15};
+
 
 rcl_state_t
 rcl_create_state(unsigned int index, char * label)
@@ -59,11 +62,13 @@ rcl_create_state_transition(unsigned int index, const char * label)
 // default implementation as despicted on
 // design.ros2.org
 rcl_ret_t
-rcl_get_default_state_machine(rcl_state_machine_t* state_machine)
+rcl_init_default_state_machine(rcl_state_machine_t* state_machine)
 {
-  state_machine->transition_map.primary_states = NULL;
-  state_machine->transition_map.transition_arrays = NULL;
-  state_machine->transition_map.size = 0;
+  // Maybe we can directly store only pointers to states
+  rcl_register_primary_state(&state_machine->transition_map, rcl_state_unconfigured);
+  rcl_register_primary_state(&state_machine->transition_map, rcl_state_inactive);
+  rcl_register_primary_state(&state_machine->transition_map, rcl_state_active);
+  rcl_register_primary_state(&state_machine->transition_map, rcl_state_finalized);
 
   rcl_state_transition_t rcl_transition_configuring = rcl_create_state_transition(
     rcl_state_configuring.index, rcl_state_configuring.label);
@@ -76,29 +81,25 @@ rcl_get_default_state_machine(rcl_state_machine_t* state_machine)
   rcl_state_transition_t rcl_transition_deactivating = rcl_create_state_transition(
     rcl_state_deactivating.index, rcl_state_deactivating.label);
 
-  rcl_register_primary_state(&state_machine->transition_map, rcl_state_unconfigured);
-  rcl_register_primary_state(&state_machine->transition_map, rcl_state_inactive);
-  rcl_register_primary_state(&state_machine->transition_map, rcl_state_active);
-  rcl_register_primary_state(&state_machine->transition_map, rcl_state_finalized);
-
   // add transitions to map
   rcl_register_transition_by_state(&state_machine->transition_map,
-    rcl_state_unconfigured, rcl_state_inactive, rcl_transition_configuring);
+    &rcl_state_unconfigured, &rcl_state_inactive, rcl_transition_configuring);
   rcl_register_transition_by_state(&state_machine->transition_map,
-    rcl_state_inactive, rcl_state_unconfigured, rcl_transition_cleaningup);
+    &rcl_state_inactive, &rcl_state_unconfigured, rcl_transition_cleaningup);
   rcl_register_transition_by_state(&state_machine->transition_map,
-    rcl_state_unconfigured, rcl_state_finalized, rcl_transition_shuttingdown);
+    &rcl_state_unconfigured, &rcl_state_finalized, rcl_transition_shuttingdown);
   rcl_register_transition_by_state(&state_machine->transition_map,
-    rcl_state_inactive, rcl_state_finalized, rcl_transition_shuttingdown);
+    &rcl_state_inactive, &rcl_state_finalized, rcl_transition_shuttingdown);
   rcl_register_transition_by_state(&state_machine->transition_map,
-    rcl_state_inactive, rcl_state_active, rcl_transition_activating);
+    &rcl_state_inactive, &rcl_state_active, rcl_transition_activating);
   rcl_register_transition_by_state(&state_machine->transition_map,
-    rcl_state_active, rcl_state_inactive, rcl_transition_deactivating);
+    &rcl_state_active, &rcl_state_inactive, rcl_transition_deactivating);
   rcl_register_transition_by_state(&state_machine->transition_map,
-    rcl_state_active, rcl_state_finalized, rcl_transition_shuttingdown);
+    &rcl_state_active, &rcl_state_finalized, rcl_transition_shuttingdown);
 
   // set to first entry
-  state_machine->current_state = &state_machine->transition_map.primary_states[0];
+  //state_machine->current_state = &state_machine->transition_map.primary_states[0];
+  state_machine->current_state = &rcl_state_unconfigured;
   return RCL_RET_OK;
 }
 

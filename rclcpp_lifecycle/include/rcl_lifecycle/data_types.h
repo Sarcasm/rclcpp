@@ -31,8 +31,8 @@ typedef struct LIFECYCLE_EXPORT _rcl_state_transition_t
 {
   rcl_state_t transition_state;
   void * callback;
-  rcl_state_t * start;
-  rcl_state_t * goal;
+  const rcl_state_t * start;
+  const rcl_state_t * goal;
   const rcl_state_t * error;
 } rcl_state_transition_t;
 

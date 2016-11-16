@@ -25,10 +25,12 @@ extern "C"
 
 // primary states based on
 // design.ros2.org/articles/node_lifecycle.html
+LIFECYCLE_EXPORT extern const rcl_state_t rcl_state_unknown;
 LIFECYCLE_EXPORT extern const rcl_state_t rcl_state_unconfigured;
 LIFECYCLE_EXPORT extern const rcl_state_t rcl_state_inactive;
 LIFECYCLE_EXPORT extern const rcl_state_t rcl_state_active;
 LIFECYCLE_EXPORT extern const rcl_state_t rcl_state_finalized;
+
 LIFECYCLE_EXPORT extern const rcl_state_t rcl_state_configuring;
 LIFECYCLE_EXPORT extern const rcl_state_t rcl_state_cleaningup;
 LIFECYCLE_EXPORT extern const rcl_state_t rcl_state_shuttingdown;

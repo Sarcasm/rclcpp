@@ -36,7 +36,7 @@ rcl_register_primary_state(rcl_transition_map_t * m,
 LIFECYCLE_EXPORT
 void
 rcl_register_transition_by_state(rcl_transition_map_t * m,
-  rcl_state_t start, rcl_state_t goal, rcl_state_transition_t transition);
+  const rcl_state_t * start, const rcl_state_t * goal, rcl_state_transition_t transition);
 
 /**
  * @brief appends a transition in a map

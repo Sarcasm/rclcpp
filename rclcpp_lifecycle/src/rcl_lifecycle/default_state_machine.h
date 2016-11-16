@@ -27,7 +27,7 @@ extern "C"
 
 LIFECYCLE_EXPORT
 rcl_ret_t
-rcl_get_default_state_machine(rcl_state_machine_t* state_machine);
+rcl_init_default_state_machine(rcl_state_machine_t* state_machine);
 
 #if __cplusplus
 }
