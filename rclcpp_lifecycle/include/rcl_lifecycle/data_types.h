@@ -78,6 +78,7 @@ typedef struct LIFECYCLE_EXPORT _rcl_state_machine_t
   // a ROS communication struct...
   rcl_node_t notification_node_handle;
   rcl_publisher_t notification_publisher;
+  rcl_service_t notification_service;
 } rcl_state_machine_t;
 
 #if __cplusplus

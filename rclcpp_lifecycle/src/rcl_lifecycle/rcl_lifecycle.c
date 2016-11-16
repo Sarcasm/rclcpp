@@ -26,6 +26,7 @@ extern "C"
 #include "rosidl_generator_c/string_functions.h"
 
 #include "rclcpp_lifecycle/msg/transition.h"
+#include "rclcpp_lifecycle/srv/get_state.h"
 
 #include "rcl_lifecycle/rcl_lifecycle.h"
 #include "rcl_lifecycle/transition_map.h"
@@ -44,6 +45,7 @@ rcl_get_zero_initialized_state_machine()
   state_machine.transition_map.transition_arrays = NULL;
   state_machine.notification_node_handle = rcl_get_zero_initialized_node();
   state_machine.notification_publisher = rcl_get_zero_initialized_publisher();
+  state_machine.notification_service = rcl_get_zero_initialized_service();
 
   return state_machine;
 }
@@ -94,6 +96,32 @@ rcl_state_machine_init(rcl_state_machine_t* state_machine, const char* node_name
     }
   }
 
+  {  // initialize service
+    // Build topic, topic suffix hardcoded for now
+    // and limited in length of 255
+    const char* topic_suffix = "lifecycle_manager__get_current_state__";
+    if (strlen(node_name)+strlen(topic_suffix) >= 255)
+    {
+      fprintf(stderr, "%s:%u, Service name exceeds maximum size of 255\n",
+          __FILE__, __LINE__);
+      state_machine = NULL;
+      return RCL_RET_ERROR;
+    }
+    char topic_name[255];
+    strcpy(topic_name, topic_suffix);
+    strcat(topic_name, node_name);
+
+    const rosidl_service_type_support_t * ts = ROSIDL_GET_TYPE_SUPPORT(
+        rclcpp_lifecycle, srv, GetState);
+    rcl_service_options_t service_options = rcl_service_get_default_options();
+    rcl_ret_t ret = rcl_service_init(&state_machine->notification_service,
+        &state_machine->notification_node_handle, ts, topic_name, &service_options);
+    if (ret != RCL_RET_OK)
+    {
+      state_machine = NULL;
+      return ret;
+    }
+  }
   if (default_states)
   {
     rcl_init_default_state_machine(state_machine);
@@ -104,6 +132,15 @@ rcl_state_machine_init(rcl_state_machine_t* state_machine, const char* node_name
 rcl_ret_t
 rcl_state_machine_fini(rcl_state_machine_t* state_machine)
 {
+  {  // destroy the service
+    rcl_ret_t ret = rcl_service_fini(&state_machine->notification_service,
+        &state_machine->notification_node_handle);
+    if (ret != RCL_RET_OK)
+    {
+      fprintf(stderr, "%s:%u, Failed to destroy lifecycle notification service\n",
+          __FILE__, __LINE__);
+    }
+  }
   {  // destroy the publisher
     rcl_ret_t ret = rcl_publisher_fini(&state_machine->notification_publisher,
         &state_machine->notification_node_handle);
@@ -158,6 +195,8 @@ rcl_is_valid_transition_by_index(rcl_state_machine_t * state_machine,
       return &valid_transitions->transitions[i];
     }
   }
+  fprintf(stderr, "%s:%u, No transition matching %u found for current state %s\n",
+      __FILE__, __LINE__, transition_index, state_machine->current_state->label);
   return NULL;
 }
 
@@ -173,8 +212,6 @@ rcl_is_valid_transition_by_label(rcl_state_machine_t * state_machine,
       return &valid_transitions->transitions[i];
     }
   }
-  fprintf(stderr, "%s:%u, No transition matching %u found for current state %s\n",
-      __FILE__, __LINE__, transition_index, state_machine->current_state->label);
   return NULL;
 }
 

@@ -21,11 +21,15 @@ foreach(rmw_implementation ${rmw_implementations2})
   find_package("${rmw_implementation}" REQUIRED)
 endforeach()
 
-set(lifecycle_msgs_files
+set(lifecycle_msg_files
   "msg/Transition.msg"
 )
+set(lifecycle_srv_files
+  "srv/GetState.srv"
+)
 rosidl_generate_interfaces(lifecycle_msgs
-  ${lifecycle_msgs_files}
+  ${lifecycle_msg_files}
+  ${lifecycle_srv_files}
 )
 
 include_directories(
