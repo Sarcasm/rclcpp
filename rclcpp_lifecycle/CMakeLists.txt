@@ -26,6 +26,7 @@ set(lifecycle_msg_files
 )
 set(lifecycle_srv_files
   "srv/GetState.srv"
+  "srv/ChangeState.srv"
 )
 rosidl_generate_interfaces(lifecycle_msgs
   ${lifecycle_msg_files}
