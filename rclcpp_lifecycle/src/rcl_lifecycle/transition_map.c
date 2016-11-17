@@ -25,7 +25,7 @@ extern "C"
 
 void
 rcl_register_primary_state(rcl_transition_map_t * m,
-  const rcl_state_t primary_state)
+  rcl_state_t primary_state)
 {
   if (rcl_get_primary_state_by_index(m, primary_state.index) != NULL) {
     // primary state is already registered
