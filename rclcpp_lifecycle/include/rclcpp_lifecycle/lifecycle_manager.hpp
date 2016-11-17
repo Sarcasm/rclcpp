@@ -33,6 +33,7 @@ namespace lifecycle
 // *INDENT-OFF*
 enum class LifecyclePrimaryStatesT : unsigned int
 {
+  UNKNOWN       = 0,
   UNCONFIGURED  = 1,
   INACTIVE      = 2,
   ACTIVE        = 3,
@@ -66,7 +67,18 @@ public:
   using NodePtr = std::shared_ptr<node::lifecycle::LifecycleNode>;
 
   LifecycleManager();
+
   ~LifecycleManager();
+
+  std::shared_ptr<rclcpp::node::Node>
+  get_node_base_interface()
+  {
+    if (node_base_handle_ == nullptr)
+    {
+      fprintf(stderr, "Warning: Node base handle in licycle manager is null\n");
+    }
+    return node_base_handle_;
+  }
 
   void
   add_node_interface(const NodePtr & node);
@@ -149,6 +161,8 @@ public:
   deactivate(const std::string & node_name = "");
 
 private:
+  std::shared_ptr<rclcpp::node::Node> node_base_handle_ = nullptr;
+
   class LIFECYCLE_EXPORT LifecycleManagerImpl;
   std::unique_ptr<LifecycleManagerImpl> impl_;
 };

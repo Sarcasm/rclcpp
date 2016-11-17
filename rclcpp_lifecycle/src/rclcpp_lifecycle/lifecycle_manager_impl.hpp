@@ -24,6 +24,7 @@
 #include "rclcpp_lifecycle/lifecycle_node.hpp"
 #include "rclcpp_lifecycle/lifecycle_manager.hpp"
 #include "rclcpp_lifecycle/srv/get_state.hpp"
+#include "rclcpp_lifecycle/srv/change_state.hpp"
 
 #include "rcl_lifecycle/rcl_lifecycle.h"
 
@@ -32,13 +33,13 @@ namespace rclcpp
 namespace lifecycle
 {
 
-using NodeInterface = rclcpp::node::lifecycle::LifecycleNode;
-using NodeInterfacePtr = std::shared_ptr<rclcpp::node::lifecycle::LifecycleNodeInterface>;
-using NodeInterfaceWeakPtr = std::weak_ptr<rclcpp::node::lifecycle::LifecycleNodeInterface>;
+using LifecycleInterface = rclcpp::node::lifecycle::LifecycleNode;
+using LifecycleInterfacePtr = std::shared_ptr<rclcpp::node::lifecycle::LifecycleNodeInterface>;
+using LifecycleInterfaceWeakPtr = std::weak_ptr<rclcpp::node::lifecycle::LifecycleNodeInterface>;
 
 struct NodeStateMachine
 {
-  NodeInterfaceWeakPtr weak_node_handle;
+  LifecycleInterfaceWeakPtr weak_node_handle;
   rcl_state_machine_t state_machine;
   std::map<LifecycleTransitionsT, std::function<bool(void)>> cb_map;
   std::shared_ptr<rclcpp::service::Service<rclcpp_lifecycle::srv::GetState>> notification_server;
@@ -47,7 +48,16 @@ struct NodeStateMachine
 class LIFECYCLE_EXPORT LifecycleManager::LifecycleManagerImpl
 {
 public:
-  LifecycleManagerImpl() = default;
+  LifecycleManagerImpl(std::shared_ptr<rclcpp::node::Node> node_base_handle)
+  {
+    srv_get_state_ = node_base_handle->create_service<rclcpp_lifecycle::srv::GetState>(
+        "lifecycle_manager__get_state", std::bind(&LifecycleManagerImpl::on_get_state, this,
+          std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+    srv_change_state_ = node_base_handle->create_service<rclcpp_lifecycle::srv::ChangeState>(
+        "lifecycle_manager__change_state", std::bind(&LifecycleManagerImpl::on_change_state, this,
+          std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+  };
+
   ~LifecycleManagerImpl()
   {
     for (auto it=node_handle_map_.begin(); it != node_handle_map_.end(); ++it)
@@ -58,36 +68,65 @@ public:
   }
 
   void
-  add_node_interface(const std::string & node_name, const NodeInterfacePtr & node_interface)
+  on_get_state(const std::shared_ptr<rmw_request_id_t> /*header*/,
+      const std::shared_ptr<rclcpp_lifecycle::srv::GetState::Request> req,
+      std::shared_ptr<rclcpp_lifecycle::srv::GetState::Response> resp)
   {
-    rcl_state_machine_t state_machine = rcl_get_zero_initialized_state_machine();
-    rcl_state_machine_init(&state_machine, node_name.c_str(), true);
-    add_node_interface(node_name, node_interface, state_machine);
+    auto node_handle_iter = node_handle_map_.find(req->node_name);
+    if (node_handle_iter == node_handle_map_.end())
+    {
+      resp->current_state = static_cast<uint8_t>(LifecyclePrimaryStatesT::UNKNOWN);
+      return;
+    }
+    resp->current_state = static_cast<uint8_t>(node_handle_iter->second.state_machine.current_state->index);
   }
 
   void
-  add_node_interface(const std::string & node_name, const NodeInterfacePtr & node_interface,
+  on_change_state(const std::shared_ptr<rmw_request_id_t> /*header*/,
+      const std::shared_ptr<rclcpp_lifecycle::srv::ChangeState::Request> req,
+      std::shared_ptr<rclcpp_lifecycle::srv::ChangeState::Response> resp)
+  {
+    auto node_handle_iter = node_handle_map_.find(req->node_name);
+    if (node_handle_iter == node_handle_map_.end())
+    {
+      resp->success = false;
+      return;
+    }
+    auto transition = static_cast<LifecycleTransitionsT>(req->transition);
+    resp->success = change_state(req->node_name, transition);
+  }
+
+  void
+  add_node_interface(const std::string & node_name, const LifecycleInterfacePtr & lifecycle_interface)
+  {
+    rcl_state_machine_t state_machine = rcl_get_zero_initialized_state_machine();
+    rcl_state_machine_init(&state_machine, node_name.c_str(), true);
+    add_node_interface(node_name, lifecycle_interface, state_machine);
+  }
+
+  void
+  add_node_interface(const std::string & node_name, const LifecycleInterfacePtr & lifecycle_interface,
     rcl_state_machine_t custom_state_machine)
   {
     NodeStateMachine node_state_machine;
-    node_state_machine.weak_node_handle = node_interface;
+    node_state_machine.weak_node_handle = lifecycle_interface;
     // TODO(karsten1987): Find a way to make this generic to an enduser
     node_state_machine.state_machine = custom_state_machine;
 
     // register default callbacks
     // maybe optional
     std::function<bool(void)> cb_configuring = std::bind(
-        &NodeInterface::on_configure, node_interface);
+        &LifecycleInterface::on_configure, lifecycle_interface);
     std::function<bool(void)> cb_cleaningup = std::bind(
-        &NodeInterface::on_cleanup, node_interface);
+        &LifecycleInterface::on_cleanup, lifecycle_interface);
     std::function<bool(void)> cb_shuttingdown = std::bind(
-        &NodeInterface::on_shutdown, node_interface);
+        &LifecycleInterface::on_shutdown, lifecycle_interface);
     std::function<bool(void)> cb_activating = std::bind(
-        &NodeInterface::on_activate, node_interface);
+        &LifecycleInterface::on_activate, lifecycle_interface);
     std::function<bool(void)> cb_deactivating = std::bind(
-        &NodeInterface::on_deactivate, node_interface);
+        &LifecycleInterface::on_deactivate, lifecycle_interface);
     std::function<bool(void)> cb_error = std::bind(
-        &NodeInterface::on_error, node_interface);
+        &LifecycleInterface::on_error, lifecycle_interface);
     node_state_machine.cb_map[LifecycleTransitionsT::CONFIGURING] = cb_configuring;
     node_state_machine.cb_map[LifecycleTransitionsT::CLEANINGUP] = cb_cleaningup;
     node_state_machine.cb_map[LifecycleTransitionsT::SHUTTINGDOWN] = cb_shuttingdown;
@@ -115,9 +154,9 @@ public:
     return true;
   }
 
-  template<LifecycleTransitionsT lifecycle_transition>
+  //template<LifecycleTransitionsT lifecycle_transition>
   bool
-  change_state(const std::string & node_name = "")
+  change_state(const std::string & node_name, LifecycleTransitionsT lifecycle_transition)
   {
     if (node_name.empty()) {
       return false;
@@ -138,7 +177,6 @@ public:
     }
 
     unsigned int transition_index = static_cast<unsigned int>(lifecycle_transition);
-    fprintf(stderr, "GOING TO CHANGE STATE TO %u\n", transition_index);
     if (!rcl_start_transition_by_index(&node_handle_iter->second.state_machine, transition_index))
     {
       fprintf(stderr, "%s:%d, Unable to start transition %u from current state %s\n",
@@ -164,6 +202,9 @@ public:
   }
 
 private:
+  std::shared_ptr<rclcpp::node::Node> node_base_handle_;
+  std::shared_ptr<rclcpp::service::Service<rclcpp_lifecycle::srv::GetState>> srv_get_state_;
+  std::shared_ptr<rclcpp::service::Service<rclcpp_lifecycle::srv::ChangeState>> srv_change_state_;
   std::map<std::string, NodeStateMachine> node_handle_map_;
 };
 

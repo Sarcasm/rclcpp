@@ -24,7 +24,8 @@ namespace lifecycle
 {
 
 LifecycleManager::LifecycleManager()
-: impl_(new LifecycleManagerImpl())
+: node_base_handle_(new rclcpp::node::Node("lifecycle_manager")),
+  impl_(new LifecycleManagerImpl(node_base_handle_))
 {}
 
 LifecycleManager::~LifecycleManager() = default;
@@ -60,7 +61,7 @@ LifecycleManager::register_on_configure(const std::string & node_name,
 bool
 LifecycleManager::configure(const std::string & node_name)
 {
-  return impl_->change_state<lifecycle::LifecycleTransitionsT::CONFIGURING>(node_name);
+  return impl_->change_state(node_name, lifecycle::LifecycleTransitionsT::CONFIGURING);
 }
 
 bool
@@ -73,7 +74,7 @@ LifecycleManager::register_on_cleanup(const std::string & node_name,
 bool
 LifecycleManager::cleanup(const std::string & node_name)
 {
-  return impl_->change_state<lifecycle::LifecycleTransitionsT::CLEANINGUP>(node_name);
+  return impl_->change_state(node_name, lifecycle::LifecycleTransitionsT::CLEANINGUP);
 }
 
 bool
@@ -86,7 +87,7 @@ LifecycleManager::register_on_shutdown(const std::string & node_name,
 bool
 LifecycleManager::shutdown(const std::string & node_name)
 {
-  return impl_->change_state<lifecycle::LifecycleTransitionsT::SHUTTINGDOWN>(node_name);
+  return impl_->change_state(node_name, lifecycle::LifecycleTransitionsT::SHUTTINGDOWN);
 }
 
 bool
@@ -99,7 +100,7 @@ LifecycleManager::register_on_activate(const std::string & node_name,
 bool
 LifecycleManager::activate(const std::string & node_name)
 {
-  return impl_->change_state<lifecycle::LifecycleTransitionsT::ACTIVATING>(node_name);
+  return impl_->change_state(node_name, lifecycle::LifecycleTransitionsT::ACTIVATING);
 }
 
 bool
@@ -112,7 +113,7 @@ LifecycleManager::register_on_deactivate(const std::string & node_name,
 bool
 LifecycleManager::deactivate(const std::string & node_name)
 {
-  return impl_->change_state<lifecycle::LifecycleTransitionsT::DEACTIVATING>(node_name);
+  return impl_->change_state(node_name, lifecycle::LifecycleTransitionsT::DEACTIVATING);
 }
 
 }  // namespace lifecycle
