@@ -35,6 +35,18 @@ extern "C"
 
 static rclcpp_lifecycle__msg__Transition msg;
 
+bool concatenate(const char** prefix, const char** suffix, char** result)
+{
+	size_t prefix_size = strlen(*prefix);
+	size_t suffix_size = strlen(*suffix);
+	if ((prefix_size+suffix_size) >= 255)
+		return false;
+	*result = malloc((prefix_size+suffix_size)*sizeof(char));
+	memcpy(*result, *prefix, prefix_size);
+	memcpy(*result+prefix_size, *suffix, suffix_size);
+	return true;
+}
+
 // get zero initialized state machine here
 rcl_state_machine_t
 rcl_get_zero_initialized_state_machine()
@@ -72,16 +84,14 @@ rcl_state_machine_init(rcl_state_machine_t* state_machine, const char* node_name
     // Build topic, topic suffix hardcoded for now
     // and limited in length of 255
     const char* topic_suffix = "lifecycle_manager__state_changes__";
-    if (strlen(node_name)+strlen(topic_suffix) >= 255)
-    {
+    char* topic_name;
+	if (concatenate(&topic_suffix, &node_name, &topic_name) != true)
+	{
       fprintf(stderr, "%s:%u, Topic name exceeds maximum size of 255\n",
           __FILE__, __LINE__);
       state_machine = NULL;
       return RCL_RET_ERROR;
-    }
-    char topic_name[255];
-    strcpy(topic_name, topic_suffix);
-    strcat(topic_name, node_name);
+    }	
 
     const rosidl_message_type_support_t * ts = ROSIDL_GET_TYPE_SUPPORT(
         rclcpp_lifecycle, msg, Transition);
@@ -92,24 +102,24 @@ rcl_state_machine_init(rcl_state_machine_t* state_machine, const char* node_name
     if (ret != RCL_RET_OK)
     {
       state_machine = NULL;
+	  free(topic_name);
       return ret;
     }
+	free(topic_name);
   }
 
   {  // initialize service
     // Build topic, topic suffix hardcoded for now
     // and limited in length of 255
     const char* topic_suffix = "lifecycle_manager__get_current_state__";
-    if (strlen(node_name)+strlen(topic_suffix) >= 255)
-    {
-      fprintf(stderr, "%s:%u, Service name exceeds maximum size of 255\n",
+    char* topic_name;
+	if (concatenate(&topic_suffix, &node_name, &topic_name) != true)
+	{
+      fprintf(stderr, "%s:%u, Topic name exceeds maximum size of 255\n",
           __FILE__, __LINE__);
       state_machine = NULL;
       return RCL_RET_ERROR;
     }
-    char topic_name[255];
-    strcpy(topic_name, topic_suffix);
-    strcat(topic_name, node_name);
 
     const rosidl_service_type_support_t * ts = ROSIDL_GET_TYPE_SUPPORT(
         rclcpp_lifecycle, srv, GetState);
@@ -119,9 +129,12 @@ rcl_state_machine_init(rcl_state_machine_t* state_machine, const char* node_name
     if (ret != RCL_RET_OK)
     {
       state_machine = NULL;
+	  free(topic_name);
       return ret;
     }
+	free(topic_name);
   }
+  
   if (default_states)
   {
     rcl_init_default_state_machine(state_machine);
