@@ -45,7 +45,7 @@ struct NodeStateMachine
   std::shared_ptr<rclcpp::service::Service<rclcpp_lifecycle::srv::GetState>> notification_server;
 };
 
-class LIFECYCLE_EXPORT LifecycleManager::LifecycleManagerImpl
+class LifecycleManager::LifecycleManagerImpl
 {
 public:
   LifecycleManagerImpl(std::shared_ptr<rclcpp::node::Node> node_base_handle)

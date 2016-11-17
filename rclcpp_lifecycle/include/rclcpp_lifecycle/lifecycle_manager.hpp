@@ -60,16 +60,19 @@ class LifecycleManagerInterface
 };
 // *INDENT-ON*
 
-class LIFECYCLE_EXPORT LifecycleManager : public LifecycleManagerInterface
+class LifecycleManager : public LifecycleManagerInterface
 {
 public:
   using NodeInterfacePtr = std::shared_ptr<node::lifecycle::LifecycleNodeInterface>;
   using NodePtr = std::shared_ptr<node::lifecycle::LifecycleNode>;
 
+  LIFECYCLE_EXPORT
   LifecycleManager();
 
+  LIFECYCLE_EXPORT
   ~LifecycleManager();
 
+  LIFECYCLE_EXPORT
   std::shared_ptr<rclcpp::node::Node>
   get_node_base_interface()
   {
@@ -80,12 +83,15 @@ public:
     return node_base_handle_;
   }
 
+  LIFECYCLE_EXPORT
   void
   add_node_interface(const NodePtr & node);
 
+  LIFECYCLE_EXPORT
   void
   add_node_interface(const std::string & node_name, const NodeInterfacePtr & node_interface);
 
+  LIFECYCLE_EXPORT
   void
   add_node_interface(const std::string & node_name, const NodeInterfacePtr & node_interface,
     rcl_state_machine_t custom_state_machine);
@@ -98,9 +104,11 @@ public:
     return register_on_configure(node_name, cb);
   }
 
+  LIFECYCLE_EXPORT
   bool
   register_on_configure(const std::string & node_name, std::function<bool(void)> & fcn);
 
+  LIFECYCLE_EXPORT
   bool
   configure(const std::string & node_name = "");
 
@@ -112,9 +120,11 @@ public:
     return register_on_cleanup(node_name, cb);
   }
 
+  LIFECYCLE_EXPORT
   bool
   register_on_cleanup(const std::string & node_name, std::function<bool(void)> & fcn);
 
+  LIFECYCLE_EXPORT
   bool
   cleanup(const std::string & node_name = "");
 
@@ -126,9 +136,11 @@ public:
     return register_on_shutdown(node_name, cb);
   }
 
+  LIFECYCLE_EXPORT
   bool
   register_on_shutdown(const std::string & node_name, std::function<bool(void)> & fcn);
 
+  LIFECYCLE_EXPORT
   bool
   shutdown(const std::string & node_name = "");
 
@@ -140,9 +152,11 @@ public:
     return register_on_activate(node_name, cb);
   }
 
+  LIFECYCLE_EXPORT
   bool
   register_on_activate(const std::string & node_name, std::function<bool(void)> & fcn);
 
+  LIFECYCLE_EXPORT
   bool
   activate(const std::string & node_name = "");
 
@@ -154,16 +168,18 @@ public:
     return register_on_deactivate(node_name, cb);
   }
 
+  LIFECYCLE_EXPORT
   bool
   register_on_deactivate(const std::string & node_name, std::function<bool(void)> & fcn);
 
+  LIFECYCLE_EXPORT
   bool
   deactivate(const std::string & node_name = "");
 
 private:
   std::shared_ptr<rclcpp::node::Node> node_base_handle_ = nullptr;
 
-  class LIFECYCLE_EXPORT LifecycleManagerImpl;
+  class LifecycleManagerImpl;
   std::unique_ptr<LifecycleManagerImpl> impl_;
 };
 
