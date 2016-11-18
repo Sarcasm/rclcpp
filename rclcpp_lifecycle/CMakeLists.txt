@@ -22,30 +22,24 @@ foreach(rmw_implementation ${rmw_implementations2})
 endforeach()
 
 set(lifecycle_msg_files
-  "msg/Transition.msg"
-)
+  "msg/Transition.msg")
 set(lifecycle_srv_files
   "srv/GetState.srv"
-  "srv/ChangeState.srv"
-)
+  "srv/ChangeState.srv")
 rosidl_generate_interfaces(lifecycle_msgs
   ${lifecycle_msg_files}
-  ${lifecycle_srv_files}
-)
+  ${lifecycle_srv_files})
 
 include_directories(
-  include
-)
+  include)
 
 set(rcl_lifecycle_sources
   src/rcl_lifecycle/default_state_machine.c
   src/rcl_lifecycle/rcl_lifecycle.c
-  src/rcl_lifecycle/transition_map.c
-)
+  src/rcl_lifecycle/transition_map.c)
 set_source_files_properties(
   ${rcl_lifecycle_sources}
-  PROPERTIES language "C"
-)
+  PROPERTIES language "C")
 
 macro(targets)
   get_rclcpp_information("${rmw_implementation}" "rclcpp${target_suffix}")
@@ -62,8 +56,7 @@ macro(targets)
   foreach(typesupport_impl ${typesupport_impls_c})
     rosidl_target_interfaces(rcl_lifecycle${target_suffix}
       lifecycle_msgs
-      ${typesupport_impl}
-      )
+      ${typesupport_impl})
   endforeach()
 
   ament_target_dependencies(rcl_lifecycle${target_suffix}
@@ -73,8 +66,7 @@ macro(targets)
   install(TARGETS rcl_lifecycle${target_suffix}
     ARCHIVE DESTINATION lib
     LIBRARY DESTINATION lib
-    RUNTIME DESTINATION bin
-  )
+    RUNTIME DESTINATION bin)
 
   ### CPP High level library+exe
   add_library(rclcpp_lifecycle${target_suffix}
@@ -85,8 +77,7 @@ macro(targets)
   foreach(typesupport_impl ${typesupport_impls_cpp})
     rosidl_target_interfaces(rclcpp_lifecycle${target_suffix}
       lifecycle_msgs
-      ${typesupport_impl}
-      )
+      ${typesupport_impl})
   endforeach()
   ament_target_dependencies(rclcpp_lifecycle${target_suffix}
     "rclcpp${target_suffix}")
@@ -104,8 +95,7 @@ macro(targets)
     lifecycle_talker${target_suffix}
     ARCHIVE DESTINATION lib
     LIBRARY DESTINATION lib
-    RUNTIME DESTINATION bin
-  )
+    RUNTIME DESTINATION bin)
 endmacro()
 
 call_for_each_rmw_implementation(targets GENERATE_DEFAULT)

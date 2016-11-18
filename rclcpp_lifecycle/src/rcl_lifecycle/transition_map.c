@@ -30,23 +30,20 @@ rcl_register_primary_state(rcl_transition_map_t * m,
   if (rcl_get_primary_state_by_index(m, primary_state.index) != NULL) {
     // primary state is already registered
     fprintf(stderr, "%s:%u, Primary state %u is already registered\n",
-        __FILE__, __LINE__, primary_state.index);
+      __FILE__, __LINE__, primary_state.index);
     return;
   }
 
   // add new primary state memory
   ++m->size;
-  if (m->size == 1)
-  {
-    m->primary_states = malloc(m->size*sizeof(rcl_state_t));
+  if (m->size == 1) {
+    m->primary_states = malloc(m->size * sizeof(rcl_state_t));
     m->transition_arrays = malloc(m->size * sizeof(rcl_transition_array_t));
-  }
-  else
-  {
+  } else {
     m->primary_states = realloc(
-        m->primary_states, m->size * sizeof(rcl_state_t));
+      m->primary_states, m->size * sizeof(rcl_state_t));
     m->transition_arrays = realloc(
-        m->transition_arrays, m->size * sizeof(rcl_transition_array_t));
+      m->transition_arrays, m->size * sizeof(rcl_transition_array_t));
   }
   m->primary_states[m->size - 1] = primary_state;
   m->transition_arrays[m->size - 1].transitions = NULL;
@@ -55,7 +52,7 @@ rcl_register_primary_state(rcl_transition_map_t * m,
 
 void
 rcl_register_transition_by_state(rcl_transition_map_t * m,
-  const rcl_state_t* start, const rcl_state_t* goal, rcl_state_transition_t transition)
+  const rcl_state_t * start, const rcl_state_t * goal, rcl_state_transition_t transition)
 {
   transition.start = start;
   transition.goal = goal;
@@ -65,19 +62,16 @@ rcl_register_transition_by_state(rcl_transition_map_t * m,
     m, transition.start->index);
   if (!transition_array) {
     fprintf(stderr, "%s:%u, Unable to find transition array registered for start index %u",
-        __FILE__, __LINE__, transition.start->index);
+      __FILE__, __LINE__, transition.start->index);
     return;
   }
 
   // we add a new transition, so increase the size
   ++transition_array->size;
-  if (transition_array->size == 1)
-  {
+  if (transition_array->size == 1) {
     transition_array->transitions = malloc(
-        transition_array->size * sizeof(rcl_state_transition_t));
-  }
-  else
-  {
+      transition_array->size * sizeof(rcl_state_transition_t));
+  } else {
     transition_array->transitions = realloc(
       transition_array->transitions, transition_array->size * sizeof(rcl_state_transition_t));
   }

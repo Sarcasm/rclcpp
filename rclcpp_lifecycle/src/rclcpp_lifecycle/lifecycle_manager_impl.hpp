@@ -48,47 +48,45 @@ struct NodeStateMachine
 class LifecycleManager::LifecycleManagerImpl
 {
 public:
-  LifecycleManagerImpl(std::shared_ptr<rclcpp::node::Node> node_base_handle)
+  explicit LifecycleManagerImpl(std::shared_ptr<rclcpp::node::Node> node_base_handle)
   {
     srv_get_state_ = node_base_handle->create_service<rclcpp_lifecycle::srv::GetState>(
-        "lifecycle_manager__get_state", std::bind(&LifecycleManagerImpl::on_get_state, this,
-          std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+      "lifecycle_manager__get_state", std::bind(&LifecycleManagerImpl::on_get_state, this,
+      std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
     srv_change_state_ = node_base_handle->create_service<rclcpp_lifecycle::srv::ChangeState>(
-        "lifecycle_manager__change_state", std::bind(&LifecycleManagerImpl::on_change_state, this,
-          std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-  };
+      "lifecycle_manager__change_state", std::bind(&LifecycleManagerImpl::on_change_state, this,
+      std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+  }
 
   ~LifecycleManagerImpl()
   {
-    for (auto it=node_handle_map_.begin(); it != node_handle_map_.end(); ++it)
-    {
-      rcl_state_machine_t* rcl_state_machine = &it->second.state_machine;
+    for (auto it = node_handle_map_.begin(); it != node_handle_map_.end(); ++it) {
+      rcl_state_machine_t * rcl_state_machine = &it->second.state_machine;
       rcl_state_machine_fini(rcl_state_machine);
     }
   }
 
   void
-  on_get_state(const std::shared_ptr<rmw_request_id_t> /*header*/,
-      const std::shared_ptr<rclcpp_lifecycle::srv::GetState::Request> req,
-      std::shared_ptr<rclcpp_lifecycle::srv::GetState::Response> resp)
+  on_get_state(const std::shared_ptr<rmw_request_id_t>/*header*/,
+    const std::shared_ptr<rclcpp_lifecycle::srv::GetState::Request> req,
+    std::shared_ptr<rclcpp_lifecycle::srv::GetState::Response> resp)
   {
     auto node_handle_iter = node_handle_map_.find(req->node_name);
-    if (node_handle_iter == node_handle_map_.end())
-    {
+    if (node_handle_iter == node_handle_map_.end()) {
       resp->current_state = static_cast<uint8_t>(LifecyclePrimaryStatesT::UNKNOWN);
       return;
     }
-    resp->current_state = static_cast<uint8_t>(node_handle_iter->second.state_machine.current_state->index);
+    resp->current_state =
+      static_cast<uint8_t>(node_handle_iter->second.state_machine.current_state->index);
   }
 
   void
-  on_change_state(const std::shared_ptr<rmw_request_id_t> /*header*/,
-      const std::shared_ptr<rclcpp_lifecycle::srv::ChangeState::Request> req,
-      std::shared_ptr<rclcpp_lifecycle::srv::ChangeState::Response> resp)
+  on_change_state(const std::shared_ptr<rmw_request_id_t>/*header*/,
+    const std::shared_ptr<rclcpp_lifecycle::srv::ChangeState::Request> req,
+    std::shared_ptr<rclcpp_lifecycle::srv::ChangeState::Response> resp)
   {
     auto node_handle_iter = node_handle_map_.find(req->node_name);
-    if (node_handle_iter == node_handle_map_.end())
-    {
+    if (node_handle_iter == node_handle_map_.end()) {
       resp->success = false;
       return;
     }
@@ -97,7 +95,8 @@ public:
   }
 
   void
-  add_node_interface(const std::string & node_name, const LifecycleInterfacePtr & lifecycle_interface)
+  add_node_interface(const std::string & node_name,
+    const LifecycleInterfacePtr & lifecycle_interface)
   {
     rcl_state_machine_t state_machine = rcl_get_zero_initialized_state_machine();
     rcl_state_machine_init(&state_machine, node_name.c_str(), true);
@@ -105,7 +104,8 @@ public:
   }
 
   void
-  add_node_interface(const std::string & node_name, const LifecycleInterfacePtr & lifecycle_interface,
+  add_node_interface(const std::string & node_name,
+    const LifecycleInterfacePtr & lifecycle_interface,
     rcl_state_machine_t custom_state_machine)
   {
     NodeStateMachine node_state_machine;
@@ -116,17 +116,17 @@ public:
     // register default callbacks
     // maybe optional
     std::function<bool(void)> cb_configuring = std::bind(
-        &LifecycleInterface::on_configure, lifecycle_interface);
+      &LifecycleInterface::on_configure, lifecycle_interface);
     std::function<bool(void)> cb_cleaningup = std::bind(
-        &LifecycleInterface::on_cleanup, lifecycle_interface);
+      &LifecycleInterface::on_cleanup, lifecycle_interface);
     std::function<bool(void)> cb_shuttingdown = std::bind(
-        &LifecycleInterface::on_shutdown, lifecycle_interface);
+      &LifecycleInterface::on_shutdown, lifecycle_interface);
     std::function<bool(void)> cb_activating = std::bind(
-        &LifecycleInterface::on_activate, lifecycle_interface);
+      &LifecycleInterface::on_activate, lifecycle_interface);
     std::function<bool(void)> cb_deactivating = std::bind(
-        &LifecycleInterface::on_deactivate, lifecycle_interface);
+      &LifecycleInterface::on_deactivate, lifecycle_interface);
     std::function<bool(void)> cb_error = std::bind(
-        &LifecycleInterface::on_error, lifecycle_interface);
+      &LifecycleInterface::on_error, lifecycle_interface);
     node_state_machine.cb_map[LifecycleTransitionsT::CONFIGURING] = cb_configuring;
     node_state_machine.cb_map[LifecycleTransitionsT::CLEANINGUP] = cb_cleaningup;
     node_state_machine.cb_map[LifecycleTransitionsT::SHUTTINGDOWN] = cb_shuttingdown;
@@ -154,7 +154,6 @@ public:
     return true;
   }
 
-  //template<LifecycleTransitionsT lifecycle_transition>
   bool
   change_state(const std::string & node_name, LifecycleTransitionsT lifecycle_transition)
   {
@@ -165,22 +164,23 @@ public:
     auto node_handle_iter = node_handle_map_.find(node_name);
     if (node_handle_iter == node_handle_map_.end()) {
       fprintf(stderr, "%s:%d, Node with name %s is not registered\n",
-          __FILE__, __LINE__, node_name.c_str());
+        __FILE__, __LINE__, node_name.c_str());
       return false;
     }
 
     auto node_handle = node_handle_iter->second.weak_node_handle.lock();
     if (!node_handle) {
-      fprintf(stderr, "%s:%d, Nodehandle is not available. Was it destroyed outside the lifecycle manager?\n",
-          __FILE__, __LINE__);
+      fprintf(stderr,
+        "%s:%d, Nodehandle is not available. Was it destroyed outside the lifecycle manager?\n",
+        __FILE__, __LINE__);
       return false;
     }
 
     unsigned int transition_index = static_cast<unsigned int>(lifecycle_transition);
-    if (!rcl_start_transition_by_index(&node_handle_iter->second.state_machine, transition_index))
-    {
+    if (!rcl_start_transition_by_index(&node_handle_iter->second.state_machine, transition_index)) {
       fprintf(stderr, "%s:%d, Unable to start transition %u from current state %s\n",
-          __FILE__, __LINE__, transition_index, node_handle_iter->second.state_machine.current_state->label);
+        __FILE__, __LINE__, transition_index,
+        node_handle_iter->second.state_machine.current_state->label);
       return false;
     }
 
@@ -190,9 +190,10 @@ public:
     auto success = callback();
 
     if (!rcl_finish_transition_by_index(&node_handle_iter->second.state_machine,
-          transition_index, success)) {
+      transition_index, success))
+    {
       fprintf(stderr, "Failed to finish transition %u. Current state is now: %s\n",
-          transition_index, node_handle_iter->second.state_machine.current_state->label);
+        transition_index, node_handle_iter->second.state_machine.current_state->label);
       return false;
     }
     // This true holds in both cases where the actual callback

@@ -76,8 +76,7 @@ public:
   std::shared_ptr<rclcpp::node::Node>
   get_node_base_interface()
   {
-    if (node_base_handle_ == nullptr)
-    {
+    if (node_base_handle_ == nullptr) {
       fprintf(stderr, "Warning: Node base handle in licycle manager is null\n");
     }
     return node_base_handle_;

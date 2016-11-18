@@ -23,13 +23,14 @@
 #include "rcl_lifecycle/states.h"
 #include "rcl_lifecycle/transition_map.h"
 
-#include "default_state_machine.h"
+#include "default_state_machine.hxx"
 
 #if __cplusplus
 extern "C"
 {
 #endif
 
+//  *INDENT-OFF*
 const rcl_state_t rcl_state_unknown          = {"unknown", 0};
 const rcl_state_t rcl_state_unconfigured     = {"unconfigured", 1};
 const rcl_state_t rcl_state_inactive         = {"inactive", 2};
@@ -42,7 +43,7 @@ const rcl_state_t rcl_state_shuttingdown     = {"shuttingdown", 12};
 const rcl_state_t rcl_state_activating       = {"activating", 13};
 const rcl_state_t rcl_state_deactivating     = {"deactivating", 14};
 const rcl_state_t rcl_state_errorprocessing  = {"errorprocessing", 15};
-
+// *INDENT-ON*
 
 rcl_state_t
 rcl_create_state(unsigned int index, char * label)
@@ -55,14 +56,14 @@ rcl_state_transition_t
 rcl_create_state_transition(unsigned int index, const char * label)
 {
   rcl_state_transition_t ret_transition = {{.index = index, .label = label},
-    NULL, NULL, NULL, &rcl_state_errorprocessing};
+                                           NULL, NULL, NULL, &rcl_state_errorprocessing};
   return ret_transition;
 }
 
 // default implementation as despicted on
 // design.ros2.org
 rcl_ret_t
-rcl_init_default_state_machine(rcl_state_machine_t* state_machine)
+rcl_init_default_state_machine(rcl_state_machine_t * state_machine)
 {
   // Maybe we can directly store only pointers to states
   rcl_register_primary_state(&state_machine->transition_map, rcl_state_unconfigured);
@@ -98,7 +99,7 @@ rcl_init_default_state_machine(rcl_state_machine_t* state_machine)
     &rcl_state_active, &rcl_state_finalized, rcl_transition_shuttingdown);
 
   // set to first entry
-  //state_machine->current_state = &state_machine->transition_map.primary_states[0];
+  // state_machine->current_state = &state_machine->transition_map.primary_states[0];
   state_machine->current_state = &rcl_state_unconfigured;
   return RCL_RET_OK;
 }
