@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include <string>
+#include <memory>
 
 #include "rclcpp_lifecycle/lifecycle_manager.hpp"
 
@@ -24,11 +25,18 @@ namespace lifecycle
 {
 
 LifecycleManager::LifecycleManager()
-: node_base_handle_(new rclcpp::node::Node("lifecycle_manager")),
-  impl_(new LifecycleManagerImpl(node_base_handle_))
-{}
+: impl_(new LifecycleManagerImpl())
+{
+  impl_->init();
+}
 
 LifecycleManager::~LifecycleManager() = default;
+
+std::shared_ptr<rclcpp::node::Node>
+LifecycleManager::get_node_base_interface()
+{
+  return impl_->node_base_handle_;
+}
 
 void
 LifecycleManager::add_node_interface(const NodePtr & node)
@@ -41,14 +49,6 @@ LifecycleManager::add_node_interface(const std::string & node_name,
   const NodeInterfacePtr & node_interface)
 {
   impl_->add_node_interface(node_name, node_interface);
-}
-
-void
-LifecycleManager::add_node_interface(const std::string & node_name,
-  const NodeInterfacePtr & node_interface,
-  rcl_state_machine_t custom_state_machine)
-{
-  impl_->add_node_interface(node_name, node_interface, custom_state_machine);
 }
 
 bool

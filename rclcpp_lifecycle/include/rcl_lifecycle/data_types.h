@@ -77,6 +77,22 @@ typedef struct LIFECYCLE_EXPORT _rcl_transition_map_t
 } rcl_transition_map_t;
 
 /**
+ * @brief: object holding all necessary
+ * ROS communication interfaces for the statemachine.
+ * node_handle pointer for instantiating
+ * state_publisher for publishing state changes
+ * srv_get_state for getting current state
+ * srv_change_state for requesting a state change
+ */
+typedef struct LIFECYCLE_EXPORT _rcl_state_comm_interface_t
+{
+  rcl_node_t * node_handle;
+  rcl_publisher_t state_publisher;
+  rcl_service_t srv_get_state;
+  rcl_service_t srv_change_state;
+} rcl_state_comm_interface_t;
+
+/**
  * @brief: statemachine object holding
  * a variable state object as current state
  * of the complete machine.
@@ -87,12 +103,10 @@ typedef struct LIFECYCLE_EXPORT _rcl_transition_map_t
 typedef struct LIFECYCLE_EXPORT _rcl_state_machine_t
 {
   const rcl_state_t * current_state;
+  // Map/Associated array of registered states and transitions
   rcl_transition_map_t transition_map;
-  // TODO(karsten1987): Maybe encapsulate this into
-  // a ROS communication struct...
-  rcl_node_t notification_node_handle;
-  rcl_publisher_t notification_publisher;
-  rcl_service_t notification_service;
+  // Communication interface into a ROS world
+  rcl_state_comm_interface_t comm_interface;
 } rcl_state_machine_t;
 
 #if __cplusplus

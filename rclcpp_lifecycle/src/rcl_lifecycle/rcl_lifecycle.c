@@ -27,6 +27,7 @@ extern "C"
 
 #include "rclcpp_lifecycle/msg/transition.h"
 #include "rclcpp_lifecycle/srv/get_state.h"
+#include "rclcpp_lifecycle/srv/change_state.h"
 
 #include "rcl_lifecycle/rcl_lifecycle.h"
 #include "rcl_lifecycle/transition_map.h"
@@ -50,44 +51,45 @@ bool concatenate(const char ** prefix, const char ** suffix, char ** result)
 
 // get zero initialized state machine here
 rcl_state_machine_t
-rcl_get_zero_initialized_state_machine()
+rcl_get_zero_initialized_state_machine(rcl_node_t * node_handle)
 {
   rcl_state_machine_t state_machine;
   state_machine.transition_map.size = 0;
   state_machine.transition_map.primary_states = NULL;
   state_machine.transition_map.transition_arrays = NULL;
-  state_machine.notification_node_handle = rcl_get_zero_initialized_node();
-  state_machine.notification_publisher = rcl_get_zero_initialized_publisher();
-  state_machine.notification_service = rcl_get_zero_initialized_service();
+  state_machine.comm_interface.node_handle = node_handle;
+  state_machine.comm_interface.state_publisher = rcl_get_zero_initialized_publisher();
+  state_machine.comm_interface.srv_get_state = rcl_get_zero_initialized_service();
+  state_machine.comm_interface.srv_change_state = rcl_get_zero_initialized_service();
 
   return state_machine;
 }
 
 rcl_ret_t
-rcl_state_machine_init(rcl_state_machine_t * state_machine,
-  const char * node_name, bool default_states)
+rcl_state_machine_init(rcl_state_machine_t * state_machine, const char* node_name, bool default_states)
 {
   // TODO(karsten1987): fail when state machine not zero initialized
-  {  // initialize node handle for notification
-    rcl_node_options_t node_options = rcl_node_get_default_options();
-    {
-      rcl_ret_t ret = rcl_node_init(&state_machine->notification_node_handle,
-          node_name, &node_options);
-      if (ret != RCL_RET_OK) {
-        fprintf(stderr, "%s:%u, Unable to initialize node handle for state machine\n",
-          __FILE__, __LINE__);
-        state_machine = NULL;
-        return ret;
-      }
-    }
-  }
+  // {  // initialize node handle for notification
+  //   rcl_node_options_t node_options = rcl_node_get_default_options();
+  //   {
+  //     rcl_ret_t ret = rcl_node_init(&state_machine->notification_node_handle,
+  //         node_name, &node_options);
+  //     if (ret != RCL_RET_OK) {
+  //       fprintf(stderr, "%s:%u, Unable to initialize node handle for state machine\n",
+  //         __FILE__, __LINE__);
+  //       state_machine = NULL;
+  //       return ret;
+  //     }
+  //   }
+  // }
+  //const char * node_name = rcl_node_get_name(state_machine->notification_node_handle);
 
   {  // initialize publisher
      // Build topic, topic suffix hardcoded for now
      // and limited in length of 255
-    const char * topic_suffix = "lifecycle_manager__state_changes__";
+    const char * topic_prefix = "__states";
     char * topic_name;
-    if (concatenate(&topic_suffix, &node_name, &topic_name) != true) {
+    if (concatenate(&node_name, &topic_prefix, &topic_name) != true) {
       fprintf(stderr, "%s:%u, Topic name exceeds maximum size of 255\n",
         __FILE__, __LINE__);
       state_machine = NULL;
@@ -97,23 +99,23 @@ rcl_state_machine_init(rcl_state_machine_t * state_machine,
     const rosidl_message_type_support_t * ts = ROSIDL_GET_TYPE_SUPPORT(
       rclcpp_lifecycle, msg, Transition);
     rcl_publisher_options_t publisher_options = rcl_publisher_get_default_options();
-    rcl_ret_t ret = rcl_publisher_init(&state_machine->notification_publisher,
-        &state_machine->notification_node_handle, ts, topic_name, &publisher_options);
+    rcl_ret_t ret = rcl_publisher_init(&state_machine->comm_interface.state_publisher,
+        state_machine->comm_interface.node_handle, ts, topic_name, &publisher_options);
 
     if (ret != RCL_RET_OK) {
       state_machine = NULL;
       free(topic_name);
       return ret;
     }
-    free(topic_name);
+    //free(topic_name);
   }
 
-  {  // initialize service
+  {  // initialize get state service
      // Build topic, topic suffix hardcoded for now
      // and limited in length of 255
-    const char * topic_suffix = "lifecycle_manager__get_current_state__";
+    const char * topic_prefix = "__get_state";
     char * topic_name;
-    if (concatenate(&topic_suffix, &node_name, &topic_name) != true) {
+    if (concatenate(&node_name, &topic_prefix, &topic_name) != true) {
       fprintf(stderr, "%s:%u, Topic name exceeds maximum size of 255\n",
         __FILE__, __LINE__);
       state_machine = NULL;
@@ -123,14 +125,39 @@ rcl_state_machine_init(rcl_state_machine_t * state_machine,
     const rosidl_service_type_support_t * ts = ROSIDL_GET_TYPE_SUPPORT(
       rclcpp_lifecycle, srv, GetState);
     rcl_service_options_t service_options = rcl_service_get_default_options();
-    rcl_ret_t ret = rcl_service_init(&state_machine->notification_service,
-        &state_machine->notification_node_handle, ts, topic_name, &service_options);
+    rcl_ret_t ret = rcl_service_init(&state_machine->comm_interface.srv_get_state,
+        state_machine->comm_interface.node_handle, ts, topic_name, &service_options);
     if (ret != RCL_RET_OK) {
       state_machine = NULL;
       free(topic_name);
       return ret;
     }
-    free(topic_name);
+    //free(topic_name);
+  }
+
+  {  // initialize change state service
+     // Build topic, topic suffix hardcoded for now
+     // and limited in length of 255
+    const char * topic_prefix = "__change_state";
+    char * topic_name;
+    if (concatenate(&node_name, &topic_prefix, &topic_name) != true) {
+      fprintf(stderr, "%s:%u, Topic name exceeds maximum size of 255\n",
+        __FILE__, __LINE__);
+      state_machine = NULL;
+      return RCL_RET_ERROR;
+    }
+
+    const rosidl_service_type_support_t * ts = ROSIDL_GET_TYPE_SUPPORT(
+      rclcpp_lifecycle, srv, ChangeState);
+    rcl_service_options_t service_options = rcl_service_get_default_options();
+    rcl_ret_t ret = rcl_service_init(&state_machine->comm_interface.srv_change_state,
+        state_machine->comm_interface.node_handle, ts, topic_name, &service_options);
+    if (ret != RCL_RET_OK) {
+      state_machine = NULL;
+      free(topic_name);
+      return ret;
+    }
+    //free(topic_name);
   }
 
   if (default_states) {
@@ -142,29 +169,39 @@ rcl_state_machine_init(rcl_state_machine_t * state_machine,
 rcl_ret_t
 rcl_state_machine_fini(rcl_state_machine_t * state_machine)
 {
-  {  // destroy the service
-    rcl_ret_t ret = rcl_service_fini(&state_machine->notification_service,
-        &state_machine->notification_node_handle);
+  {  // destroy get state srv
+    rcl_ret_t ret = rcl_service_fini(&state_machine->comm_interface.srv_get_state,
+        state_machine->comm_interface.node_handle);
     if (ret != RCL_RET_OK) {
-      fprintf(stderr, "%s:%u, Failed to destroy lifecycle notification service\n",
+      fprintf(stderr, "%s:%u, Failed to destroy get_state_srv service\n",
         __FILE__, __LINE__);
     }
   }
+
+  {  // destroy change state srv
+    rcl_ret_t ret = rcl_service_fini(&state_machine->comm_interface.srv_change_state,
+        state_machine->comm_interface.node_handle);
+    if (ret != RCL_RET_OK) {
+      fprintf(stderr, "%s:%u, Failed to destroy change_state_srv service\n",
+        __FILE__, __LINE__);
+    }
+  }
+
   {  // destroy the publisher
-    rcl_ret_t ret = rcl_publisher_fini(&state_machine->notification_publisher,
-        &state_machine->notification_node_handle);
+    rcl_ret_t ret = rcl_publisher_fini(&state_machine->comm_interface.state_publisher,
+        state_machine->comm_interface.node_handle);
     if (ret != RCL_RET_OK) {
-      fprintf(stderr, "%s:%u, Failed to destroy lifecycle notification publisher\n",
+      fprintf(stderr, "%s:%u, Failed to destroy state publisher publisher\n",
         __FILE__, __LINE__);
     }
   }
-  {  // destroy the node handle
-    rcl_ret_t ret = rcl_node_fini(&state_machine->notification_node_handle);
-    if (ret != RCL_RET_OK) {
-      fprintf(stderr, "%s:%u, Failed to destroy lifecycle notification node handle\n",
-        __FILE__, __LINE__);
-    }
-  }
+  // {  // destroy the node handle
+  //   rcl_ret_t ret = rcl_node_fini(&state_machine->notification_node_handle);
+  //   if (ret != RCL_RET_OK) {
+  //     fprintf(stderr, "%s:%u, Failed to destroy lifecycle notification node handle\n",
+  //       __FILE__, __LINE__);
+  //   }
+  // }
 
   rcl_transition_map_t * transition_map = &state_machine->transition_map;
 
@@ -303,7 +340,7 @@ rcl_start_transition_by_index(rcl_state_machine_t * state_machine,
   msg.start_state = state_machine->current_state->index;
   msg.goal_state = transition->transition_state.index;
 
-  if (rcl_publish(&state_machine->notification_publisher, &msg) != RCL_RET_OK) {
+  if (rcl_publish(&state_machine->comm_interface.state_publisher, &msg) != RCL_RET_OK) {
     fprintf(stderr, "%s:%d, Couldn't publish the notification message.\n",
       __FILE__, __LINE__);
   }
@@ -343,7 +380,7 @@ rcl_finish_transition_by_index(rcl_state_machine_t * state_machine,
     rclcpp_lifecycle__msg__Transition__init(&msg);
     msg.start_state = transition->transition_state.index;
     msg.goal_state = transition->goal->index;
-    if (rcl_publish(&state_machine->notification_publisher, &msg) != RCL_RET_OK) {
+    if (rcl_publish(&state_machine->comm_interface.state_publisher, &msg) != RCL_RET_OK) {
       fprintf(stderr, "%s:%d, Couldn't publish the notification message.\n",
         __FILE__, __LINE__);
     }
@@ -355,7 +392,7 @@ rcl_finish_transition_by_index(rcl_state_machine_t * state_machine,
   rclcpp_lifecycle__msg__Transition__init(&msg);
   msg.start_state = transition->transition_state.index;
   msg.goal_state = transition->error->index;
-  if (rcl_publish(&state_machine->notification_publisher, &msg) != RCL_RET_OK) {
+  if (rcl_publish(&state_machine->comm_interface.state_publisher, &msg) != RCL_RET_OK) {
     fprintf(stderr, "%s:%d, Couldn't publish the notification message.\n",
       __FILE__, __LINE__);
   }

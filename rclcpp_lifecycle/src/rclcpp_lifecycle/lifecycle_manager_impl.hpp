@@ -42,36 +42,61 @@ struct NodeStateMachine
   LifecycleInterfaceWeakPtr weak_node_handle;
   rcl_state_machine_t state_machine;
   std::map<LifecycleTransitionsT, std::function<bool(void)>> cb_map;
-  std::shared_ptr<rclcpp::service::Service<rclcpp_lifecycle::srv::GetState>> notification_server;
+  // std::shared_ptr<rclcpp::service::Service<rclcpp_lifecycle::srv::GetState>> srv_get_state;
+  // std::shared_ptr<rclcpp::service::Service<rclcpp_lifecycle::srv::GetState>> srv_change_state;
+  std::shared_ptr<rclcpp::service::ServiceBase> srv_get_state;
+  std::shared_ptr<rclcpp::service::ServiceBase> srv_change_state;
 };
 
 class LifecycleManager::LifecycleManagerImpl
 {
 public:
-  explicit LifecycleManagerImpl(std::shared_ptr<rclcpp::node::Node> node_base_handle)
+  LifecycleManagerImpl()
+  : node_base_handle_(std::make_shared<rclcpp::node::Node>("lifecycle_manager"))
   {
-    srv_get_state_ = node_base_handle->create_service<rclcpp_lifecycle::srv::GetState>(
-      "lifecycle_manager__get_state", std::bind(&LifecycleManagerImpl::on_get_state, this,
-      std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-    srv_change_state_ = node_base_handle->create_service<rclcpp_lifecycle::srv::ChangeState>(
-      "lifecycle_manager__change_state", std::bind(&LifecycleManagerImpl::on_change_state, this,
-      std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
   }
 
   ~LifecycleManagerImpl()
   {
+    fprintf(stderr, "Going to detroy my lifecycle manager\n");
     for (auto it = node_handle_map_.begin(); it != node_handle_map_.end(); ++it) {
       rcl_state_machine_t * rcl_state_machine = &it->second.state_machine;
+      if (!rcl_state_machine)
+        fprintf(stderr, "Hell is burning \n");
       rcl_state_machine_fini(rcl_state_machine);
     }
   }
 
   void
-  on_get_state(const std::shared_ptr<rmw_request_id_t>/*header*/,
+  init()
+  {
+    //srv_get_state_ = node_base_handle_->create_service<rclcpp_lifecycle::srv::GetState>(
+    //  node_base_handle_->get_name() + "__get_state",
+    //  std::bind(&LifecycleManagerImpl::on_get_state, this,
+    //  std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+    //srv_change_state_ = node_base_handle_->create_service<rclcpp_lifecycle::srv::ChangeState>(
+    //  node_base_handle_->get_name() + "__change_state",
+    //  std::bind(&LifecycleManagerImpl::on_change_state, this,
+    //  std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+  }
+
+  void
+  on_get_state(const std::shared_ptr<rmw_request_id_t> header,
     const std::shared_ptr<rclcpp_lifecycle::srv::GetState::Request> req,
     std::shared_ptr<rclcpp_lifecycle::srv::GetState::Response> resp)
   {
-    auto node_handle_iter = node_handle_map_.find(req->node_name);
+    on_get_single_state(header, req, resp, req->node_name);
+  }
+
+  void
+  on_get_single_state(const std::shared_ptr<rmw_request_id_t> header,
+    const std::shared_ptr<rclcpp_lifecycle::srv::GetState::Request> req,
+    std::shared_ptr<rclcpp_lifecycle::srv::GetState::Response> resp,
+    std::string node_name)
+  {
+    (void)header;
+    (void)req;
+    auto node_handle_iter = node_handle_map_.find(node_name);
     if (node_handle_iter == node_handle_map_.end()) {
       resp->current_state = static_cast<uint8_t>(LifecyclePrimaryStatesT::UNKNOWN);
       return;
@@ -81,38 +106,83 @@ public:
   }
 
   void
-  on_change_state(const std::shared_ptr<rmw_request_id_t>/*header*/,
+  on_change_state(const std::shared_ptr<rmw_request_id_t>header,
     const std::shared_ptr<rclcpp_lifecycle::srv::ChangeState::Request> req,
     std::shared_ptr<rclcpp_lifecycle::srv::ChangeState::Response> resp)
   {
-    auto node_handle_iter = node_handle_map_.find(req->node_name);
+    on_change_single_state(header, req, resp, req->node_name);
+  }
+
+  void
+  on_change_single_state(const std::shared_ptr<rmw_request_id_t> header,
+    const std::shared_ptr<rclcpp_lifecycle::srv::ChangeState::Request> req,
+    std::shared_ptr<rclcpp_lifecycle::srv::ChangeState::Response> resp,
+    std::string node_name)
+  {
+    (void)header;
+    auto node_handle_iter = node_handle_map_.find(node_name);
     if (node_handle_iter == node_handle_map_.end()) {
       resp->success = false;
       return;
     }
     auto transition = static_cast<LifecycleTransitionsT>(req->transition);
-    resp->success = change_state(req->node_name, transition);
+    resp->success = change_state(node_name, transition);
   }
 
   void
   add_node_interface(const std::string & node_name,
     const LifecycleInterfacePtr & lifecycle_interface)
   {
-    rcl_state_machine_t state_machine = rcl_get_zero_initialized_state_machine();
-    rcl_state_machine_init(&state_machine, node_name.c_str(), true);
-    add_node_interface(node_name, lifecycle_interface, state_machine);
-  }
-
-  void
-  add_node_interface(const std::string & node_name,
-    const LifecycleInterfacePtr & lifecycle_interface,
-    rcl_state_machine_t custom_state_machine)
-  {
     NodeStateMachine node_state_machine;
-    node_state_machine.weak_node_handle = lifecycle_interface;
-    // TODO(karsten1987): Find a way to make this generic to an enduser
-    node_state_machine.state_machine = custom_state_machine;
+    node_state_machine.state_machine = rcl_get_zero_initialized_state_machine(
+      node_base_handle_->get_rcl_node_handle());
+    fprintf(stderr, "Created get service address %p\n", &node_state_machine.state_machine.comm_interface.srv_get_state);
+    fprintf(stderr, "Created change service address %p\n", &node_state_machine.state_machine.comm_interface.srv_change_state);
+    rcl_state_machine_init(&node_state_machine.state_machine, node_name.c_str(), true);
 
+    // srv objects may get destroyed directly here
+    {  // get_state
+      std::function<void(const std::shared_ptr<rmw_request_id_t>,
+      const std::shared_ptr<rclcpp_lifecycle::srv::GetState::Request>,
+      std::shared_ptr<rclcpp_lifecycle::srv::GetState::Response>)> cb =
+        std::bind(&LifecycleManagerImpl::on_get_single_state, this,
+          std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
+          node_name);
+
+      rclcpp::any_service_callback::AnyServiceCallback<rclcpp_lifecycle::srv::GetState> any_cb;
+      any_cb.set(std::move(cb));
+      auto srv_get_state =
+        rclcpp::service::Service<rclcpp_lifecycle::srv::GetState>::make_shared(
+        //node_state_machine.state_machine.comm_interface.node_handle,
+        node_base_handle_->get_rcl_node_handle(),
+        &node_state_machine.state_machine.comm_interface.srv_get_state,
+        any_cb);
+      auto srv_get_state_base = std::dynamic_pointer_cast<service::ServiceBase>(srv_get_state);
+      node_base_handle_->add_service(srv_get_state_base);
+      node_state_machine.srv_get_state = srv_get_state_base;
+    }
+    {  // change_state
+      std::function<void(const std::shared_ptr<rmw_request_id_t>,
+      const std::shared_ptr<rclcpp_lifecycle::srv::ChangeState::Request>,
+      std::shared_ptr<rclcpp_lifecycle::srv::ChangeState::Response>)> cb =
+        std::bind(&LifecycleManagerImpl::on_change_single_state, this,
+          std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
+          node_name);
+
+      rclcpp::any_service_callback::AnyServiceCallback<rclcpp_lifecycle::srv::ChangeState> any_cb;
+      any_cb.set(cb);
+      auto srv_change_state =
+        std::make_shared<rclcpp::service::Service<rclcpp_lifecycle::srv::ChangeState>>(
+        //node_state_machine.state_machine.comm_interface.node_handle,
+        node_base_handle_->get_rcl_node_handle(),
+        &node_state_machine.state_machine.comm_interface.srv_change_state,
+        any_cb);
+      auto srv_change_state_base = std::dynamic_pointer_cast<service::ServiceBase>(srv_change_state);
+      //node_base_handle_->add_service(srv_change_state_base);
+      node_state_machine.srv_change_state = srv_change_state_base;
+    }
+
+    node_state_machine.weak_node_handle = lifecycle_interface;
     // register default callbacks
     // maybe optional
     std::function<bool(void)> cb_configuring = std::bind(
@@ -202,7 +272,7 @@ public:
     return true;
   }
 
-private:
+// private:
   std::shared_ptr<rclcpp::node::Node> node_base_handle_;
   std::shared_ptr<rclcpp::service::Service<rclcpp_lifecycle::srv::GetState>> srv_get_state_;
   std::shared_ptr<rclcpp::service::Service<rclcpp_lifecycle::srv::ChangeState>> srv_change_state_;

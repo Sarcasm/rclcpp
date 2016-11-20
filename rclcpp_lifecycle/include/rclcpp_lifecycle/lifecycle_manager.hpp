@@ -21,10 +21,6 @@
 
 #include "rclcpp_lifecycle/lifecycle_node.hpp"
 
-// forward declaration for c-struct
-struct _rcl_state_machine_t;
-typedef _rcl_state_machine_t rcl_state_machine_t;
-
 namespace rclcpp
 {
 namespace lifecycle
@@ -74,13 +70,7 @@ public:
 
   LIFECYCLE_EXPORT
   std::shared_ptr<rclcpp::node::Node>
-  get_node_base_interface()
-  {
-    if (node_base_handle_ == nullptr) {
-      fprintf(stderr, "Warning: Node base handle in licycle manager is null\n");
-    }
-    return node_base_handle_;
-  }
+  get_node_base_interface();
 
   LIFECYCLE_EXPORT
   void
@@ -89,11 +79,6 @@ public:
   LIFECYCLE_EXPORT
   void
   add_node_interface(const std::string & node_name, const NodeInterfacePtr & node_interface);
-
-  LIFECYCLE_EXPORT
-  void
-  add_node_interface(const std::string & node_name, const NodeInterfacePtr & node_interface,
-    rcl_state_machine_t custom_state_machine);
 
   template<typename T>
   bool
@@ -176,8 +161,6 @@ public:
   deactivate(const std::string & node_name = "");
 
 private:
-  std::shared_ptr<rclcpp::node::Node> node_base_handle_ = nullptr;
-
   class LifecycleManagerImpl;
   std::unique_ptr<LifecycleManagerImpl> impl_;
 };

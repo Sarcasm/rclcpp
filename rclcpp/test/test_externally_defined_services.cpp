@@ -47,6 +47,7 @@ TEST_F(TestExternallyDefinedServices, default_behavior) {
   try {
     auto srv = node_handle->create_service<rclcpp::srv::Mock>("test",
         callback);
+    EXPECT_STREQ(srv->get_service_name().c_str(), "test");
   } catch (const std::exception & e) {
     FAIL();
     return;
@@ -121,8 +122,9 @@ TEST_F(TestExternallyDefinedServices, extern_defined_destructor) {
   rclcpp::any_service_callback::AnyServiceCallback<rclcpp::srv::Mock> cb;
 
   {
-    rclcpp::service::Service<rclcpp::srv::Mock>(node_handle->get_rcl_node_handle(),
+    rclcpp::service::Service<rclcpp::srv::Mock> srv_cpp(node_handle->get_rcl_node_handle(),
       &service_handle, cb);
+    //EXPECT_STREQ("base_node_service", srv_cpp.get_service_name().c_str());
   }
 
   if (service_handle.impl == NULL) {

@@ -33,7 +33,7 @@ extern "C"
 //  *INDENT-OFF*
 const rcl_state_t rcl_state_unknown          = {"unknown", 0};
 const rcl_state_t rcl_state_unconfigured     = {"unconfigured", 1};
-const rcl_state_t rcl_state_inactive         = {"inactive", 2};
+const rcl_state_t rcl_state_inactive         = {"my_inactive", 2};
 const rcl_state_t rcl_state_active           = {"active", 3};
 const rcl_state_t rcl_state_finalized        = {"finalized", 4};
 
