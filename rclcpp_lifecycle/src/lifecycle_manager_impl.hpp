@@ -21,12 +21,13 @@
 #include <map>
 #include <functional>
 
+#include <rcl_lifecycle/rcl_lifecycle.h>
+#include <lifecycle_msgs/srv/get_state.hpp>
+#include <lifecycle_msgs/srv/change_state.hpp>
+
 #include "rclcpp_lifecycle/lifecycle_node.hpp"
 #include "rclcpp_lifecycle/lifecycle_manager.hpp"
-#include "lifecycle_msgs/srv/get_state.hpp"
-#include "lifecycle_msgs/srv/change_state.hpp"
 
-#include "rcl_lifecycle/rcl_lifecycle.h"
 
 namespace rclcpp
 {
